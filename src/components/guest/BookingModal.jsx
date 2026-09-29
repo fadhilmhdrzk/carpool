@@ -442,7 +442,7 @@ export default function BookingFormModal({
               </div>
 
               {/* Tanggal & Jam Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr 1fr', gap: '0.75rem', alignItems: 'start' }}>
+              <div className="form-datetime-grid">
                 <DatePicker
                   value={date}
                   onChange={setDate}
