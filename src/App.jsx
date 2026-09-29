@@ -31,7 +31,7 @@ import {
 
 import './App.css';
 
-// Helper URL Path Mappers
+// Helper URL Path Mappers & Route Helpers
 const pathToPage = (path) => {
   const cleanPath = (path || '/').toLowerCase().replace(/\/$/, '') || '/';
   if (cleanPath === '/login') return 'login';
