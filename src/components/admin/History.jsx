@@ -44,7 +44,8 @@ export default function TripHistoryPage({
         </div>
 
         {/* Table Data */}
-        <table className="custom-table">
+        <div className="table-scroll-wrapper">
+          <table className="custom-table">
           <thead>
             <tr>
               <th>Tanggal Perjalanan</th>
@@ -204,6 +205,7 @@ export default function TripHistoryPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Detail Perjalanan Modal Pop-up */}

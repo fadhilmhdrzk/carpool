@@ -194,7 +194,8 @@ export default function VehicleStatusPage({
         </div>
 
         {/* TABEL STATUS MOBIL */}
-        <table className="custom-table">
+        <div className="table-scroll-wrapper">
+          <table className="custom-table">
           <thead>
             <tr>
               <th>No</th>
@@ -438,6 +439,7 @@ export default function VehicleStatusPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Detail Ticket Modal Pop-up (Data Perjalanan Input Guest) */}

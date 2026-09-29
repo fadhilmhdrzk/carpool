@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { 
   LayoutDashboard, 
   Car, 
   FileText, 
   LogOut,
-  Building2
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function AdminSidebar({ 
@@ -13,63 +15,112 @@ export default function AdminSidebar({
   vehicleCount = 12,
   tripCount = 0
 }) {
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  const handleNavClick = (page) => {
+    onNavigateTo(page);
+    setIsMobileOpen(false);
+  };
+
+  const handleLogoutClick = () => {
+    setIsMobileOpen(false);
+    onAdminLogout();
+  };
+
   return (
-    <aside className="admin-sidebar">
-      {/* Sidebar Header Brand */}
-      <div className="admin-sidebar-header">
-        <h1 className="admin-brand-title">Admin Panel</h1>
-        <div className="admin-brand-subtitle">CARPOOL ADMIN</div>
+    <>
+      {/* Mobile Top Header Bar with Hamburger Toggle (Only visible on mobile) */}
+      <div className="mobile-admin-header">
+        <div className="mobile-admin-brand">
+          <h1 className="admin-brand-title">Admin Panel</h1>
+          <div className="admin-brand-subtitle">CARPOOL ADMIN</div>
+        </div>
+        <button 
+          className="mobile-hamburger-btn"
+          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          aria-label="Toggle Navigation Menu"
+        >
+          {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      {/* Navigation Menu List */}
-      <nav className="admin-sidebar-nav">
-        {/* Menu Item 1: DASHBOARD */}
-        <button
-          className={`sidebar-nav-item ${currentPage === 'admin-dashboard' ? 'active' : ''}`}
-          onClick={() => onNavigateTo('admin-dashboard')}
-        >
-          <div className="sidebar-nav-left">
-            <LayoutDashboard size={20} />
-            <span>DASHBOARD</span>
-          </div>
-        </button>
+      {/* Overlay Backdrop when mobile drawer is open */}
+      {isMobileOpen && (
+        <div 
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
 
-        {/* Menu Item 2: STATUS MOBIL */}
-        <button
-          className={`sidebar-nav-item ${currentPage === 'admin-vehicles' ? 'active' : ''}`}
-          onClick={() => onNavigateTo('admin-vehicles')}
-        >
-          <div className="sidebar-nav-left">
-            <Car size={20} />
-            <span>STATUS MOBIL</span>
+      {/* Sidebar Component (Fixed on desktop, Slide-out drawer on mobile) */}
+      <aside className={`admin-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
+        {/* Sidebar Header Brand */}
+        <div className="admin-sidebar-header">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h1 className="admin-brand-title">Admin Panel</h1>
+              <div className="admin-brand-subtitle">CARPOOL ADMIN</div>
+            </div>
+            {/* Close button inside sidebar drawer for mobile */}
+            <button 
+              className="mobile-drawer-close-btn"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              <X size={18} />
+            </button>
           </div>
-          {vehicleCount > 0 && (
-            <span className="sidebar-badge">{vehicleCount}</span>
-          )}
-        </button>
+        </div>
 
-        {/* Menu Item 3: RIWAYAT PERJALANAN */}
-        <button
-          className={`sidebar-nav-item ${currentPage === 'admin-history' ? 'active' : ''}`}
-          onClick={() => onNavigateTo('admin-history')}
-        >
-          <div className="sidebar-nav-left">
-            <FileText size={20} />
-            <span>RIWAYAT PERJALANAN</span>
-          </div>
-          {tripCount > 0 && (
-            <span className="sidebar-badge alt">{tripCount}</span>
-          )}
-        </button>
-      </nav>
+        {/* Navigation Menu List */}
+        <nav className="admin-sidebar-nav">
+          {/* Menu Item 1: DASHBOARD */}
+          <button
+            className={`sidebar-nav-item ${currentPage === 'admin-dashboard' ? 'active' : ''}`}
+            onClick={() => handleNavClick('admin-dashboard')}
+          >
+            <div className="sidebar-nav-left">
+              <LayoutDashboard size={20} />
+              <span>DASHBOARD</span>
+            </div>
+          </button>
 
-      {/* Footer / Logout Button */}
-      <div className="admin-sidebar-footer">
-        <button className="sidebar-logout-btn" onClick={onAdminLogout}>
-          <LogOut size={18} />
-          <span>LOGOUT</span>
-        </button>
-      </div>
-    </aside>
+          {/* Menu Item 2: STATUS MOBIL */}
+          <button
+            className={`sidebar-nav-item ${currentPage === 'admin-vehicles' ? 'active' : ''}`}
+            onClick={() => handleNavClick('admin-vehicles')}
+          >
+            <div className="sidebar-nav-left">
+              <Car size={20} />
+              <span>STATUS MOBIL</span>
+            </div>
+            {vehicleCount > 0 && (
+              <span className="sidebar-badge">{vehicleCount}</span>
+            )}
+          </button>
+
+          {/* Menu Item 3: RIWAYAT PERJALANAN */}
+          <button
+            className={`sidebar-nav-item ${currentPage === 'admin-history' ? 'active' : ''}`}
+            onClick={() => handleNavClick('admin-history')}
+          >
+            <div className="sidebar-nav-left">
+              <FileText size={20} />
+              <span>RIWAYAT PERJALANAN</span>
+            </div>
+            {tripCount > 0 && (
+              <span className="sidebar-badge alt">{tripCount}</span>
+            )}
+          </button>
+        </nav>
+
+        {/* Footer / Logout Button */}
+        <div className="admin-sidebar-footer">
+          <button className="sidebar-logout-btn" onClick={handleLogoutClick}>
+            <LogOut size={18} />
+            <span>LOGOUT</span>
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }
