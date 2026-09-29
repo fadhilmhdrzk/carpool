@@ -1,140 +1,198 @@
-import { CheckCircle, X, Printer, ShieldCheck, QrCode } from 'lucide-react';
+import { X, UserCheck, Car, Star } from 'lucide-react';
 
-export default function BookingTicketModal({ trip, onClose }) {
+export default function TripDetailModal({ trip, onClose }) {
   if (!trip) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        {/* Ticket Header */}
-        <div className="ticket-header">
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <ShieldCheck className="text-emerald-400" size={20} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: '#60a5fa' }}>
-                BANK OFFICIAL E-TICKET
-              </span>
-            </div>
-            <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.2rem', fontWeight: 800 }}>Surat Tugas Carpool Dinas</h3>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+        {/* Header */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)',
+            color: '#ffffff',
+            padding: '1.25rem 1.5rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Car size={22} style={{ color: '#60a5fa' }} />
+            <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+              Detail Perjalanan Dinas
+            </h3>
           </div>
-          <button onClick={onClose} style={{ color: '#94a3b8' }}>
+          <button
+            onClick={onClose}
+            style={{ color: '#94a3b8', border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px' }}
+          >
             <X size={20} />
           </button>
         </div>
 
-        {/* Ticket Body */}
-        <div className="ticket-body">
-          <div className="ticket-code-box">
-            <span style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
-              Kode Tiket Perjalanan Dinas
-            </span>
-            <div className="ticket-code">{trip.ticketCode}</div>
-          </div>
-
-          <div className="ticket-details-grid">
+        {/* Modal Body */}
+        <div style={{ padding: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <div className="ticket-item">
-              <label>Penanggung Jawab</label>
-              <p>{trip.borrowerName}</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Penanggung Jawab / Peminjam
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{trip.borrowerName}</p>
             </div>
 
             <div className="ticket-item">
-              <label>Unit / Departemen</label>
-              <p>{trip.department}</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Unit / Departemen
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#1e40af', fontSize: '0.95rem' }}>{trip.department}</p>
             </div>
 
             <div className="ticket-item">
-              <label>Mobil Dinas</label>
-              <p>{trip.vehicleName}</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Mobil Dinas
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{trip.vehicleName}</p>
             </div>
 
             <div className="ticket-item">
-              <label>Nomor Plat</label>
-              <p style={{ fontFamily: 'monospace', color: '#b45309' }}>{trip.plateNumber}</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Nomor Plat
+              </label>
+              <p style={{ margin: 0, fontFamily: 'monospace', fontWeight: 800, color: '#b45309', fontSize: '0.95rem' }}>{trip.plateNumber}</p>
             </div>
 
             <div className="ticket-item">
-              <label>Tanggal Perjalanan</label>
-              <p>{trip.date}</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Tanggal Perjalanan
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{trip.date}</p>
             </div>
 
             <div className="ticket-item">
-              <label>Jam Pergi - Kembali</label>
-              <p>{trip.departureTime} - {trip.returnTime} WIB</p>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Jam Pergi – Kembali
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>{trip.departureTime} – {trip.returnTime} WIB</p>
             </div>
           </div>
 
           {/* Companions */}
-          <div className="ticket-item" style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px dashed #e2e8f0' }}>
-            <label>Rekan Pendamping Dinas ({trip.companions?.length || 0} Orang)</label>
-            <p style={{ fontWeight: 500, fontSize: '0.85rem' }}>
-              {trip.companions && trip.companions.length > 0 
-                ? trip.companions.join(', ') 
+          <div style={{ marginTop: '1.25rem', paddingTop: '0.85rem', borderTop: '1px dashed #e2e8f0' }}>
+            <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>
+              Rekan Pendamping Dinas ({trip.companions?.length || 0} Orang)
+            </label>
+            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.875rem', color: '#1e293b' }}>
+              {trip.companions && trip.companions.length > 0
+                ? trip.companions.join(', ')
                 : 'Tanpa Rekan Pendamping'}
             </p>
           </div>
 
           {/* Destination */}
-          <div className="ticket-item" style={{ marginTop: '0.75rem' }}>
-            <label>Keperluan / Tujuan Dinas</label>
-            <p style={{ fontWeight: 500, fontSize: '0.85rem', color: '#334155' }}>{trip.destination}</p>
+          <div style={{ marginTop: '0.85rem' }}>
+            <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>
+              Keperluan / Tujuan Dinas
+            </label>
+            <p style={{ margin: 0, fontWeight: 500, fontSize: '0.875rem', color: '#334155', lineHeight: 1.5 }}>{trip.destination}</p>
           </div>
 
-          {/* QR Code Graphic Placeholder */}
-          <div style={{
-            marginTop: '1.25rem',
-            padding: '0.75rem',
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ padding: '0.4rem', background: '#ffffff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                <QrCode size={38} className="text-slate-800" />
-              </div>
-              <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>TIKET RESMI VALID</div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Tunjukkan tiket ini kepada Petugas Satpam Pool Mobil</div>
+          {/* Rating & Ulasan Perjalanan */}
+          {trip.rating && (
+            <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed #e2e8f0' }}>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>
+                Rating & Catatan Perjalanan
+              </label>
+              <div
+                style={{
+                  background: trip.rating === 1 ? '#fef2f2' : trip.rating === 3 ? '#fffbeb' : '#ecfdf5',
+                  border: `1px solid ${trip.rating === 1 ? '#fca5a5' : trip.rating === 3 ? '#fcd34d' : '#6ee7b7'}`,
+                  borderRadius: '10px',
+                  padding: '0.85rem 1rem'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        size={18}
+                        fill={i < trip.rating ? (
+                          trip.rating === 1 ? '#ef4444' :
+                          trip.rating === 3 ? '#f59e0b' : '#10b981'
+                        ) : 'none'}
+                        color={i < trip.rating ? (
+                          trip.rating === 1 ? '#ef4444' :
+                          trip.rating === 3 ? '#f59e0b' : '#10b981'
+                        ) : '#cbd5e1'}
+                      />
+                    ))}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: trip.rating === 1 ? '#991b1b' : trip.rating === 3 ? '#92400e' : '#065f46',
+                      background: '#ffffff',
+                      padding: '0.2rem 0.6rem',
+                      borderRadius: '9999px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                    }}
+                  >
+                    {trip.rating === 1 ? '1 Bintang (Buruk)' : trip.rating === 3 ? '3 Bintang (Baik)' : '5 Bintang (Sangat Baik)'}
+                  </span>
+                </div>
+
+                {trip.ratingDescription && (
+                  <div
+                    style={{
+                      marginTop: '0.6rem',
+                      paddingTop: '0.5rem',
+                      borderTop: `1px solid ${trip.rating === 1 ? '#fee2e2' : trip.rating === 3 ? '#fef3c7' : '#d1fae5'}`
+                    }}
+                  >
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block', marginBottom: '0.15rem' }}>
+                      Deskripsi / Catatan:
+                    </span>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: '#1e293b', fontStyle: 'italic', lineHeight: 1.45 }}>
+                      "{trip.ratingDescription}"
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-            <span className="status-badge ready">
-              <CheckCircle size={12} /> Aktif
-            </span>
-          </div>
+          )}
 
-          {/* Action buttons */}
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-            <button
-              onClick={handlePrint}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                borderRadius: '8px',
-                border: '1px solid #cbd5e1',
-                background: '#f8fafc',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                fontSize: '0.875rem'
-              }}
-            >
-              <Printer size={16} /> Cetak Tiket
-            </button>
+          {/* Submitted By */}
+          {trip.submittedBy && (
+            <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px dashed #f1f5f9' }}>
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Pengaju / Sumber Input
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.825rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <UserCheck size={14} /> {trip.submittedBy}
+              </p>
+            </div>
+          )}
 
+          {/* Action Footer */}
+          <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={onClose}
-              className="submit-btn"
-              style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem' }}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #1e40af, #1d4ed8)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(30, 64, 175, 0.25)'
+              }}
             >
-              Tutup & Selesai
+              Tutup
             </button>
           </div>
         </div>

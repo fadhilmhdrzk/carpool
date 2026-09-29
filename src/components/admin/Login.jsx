@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { ShieldCheck, Lock, ArrowLeft, Mail, LogIn, Car } from 'lucide-react';
+import { ShieldCheck, Lock, ArrowLeft, Mail, LogIn, Car, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -14,9 +16,54 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
       return;
     }
 
-    // Login validation (accepts admin@bank.co.id or any valid input)
+    setIsLoading(true);
     setError('');
-    onLoginSuccess();
+
+    try {
+      // Step 1: Login ke Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) {
+        // Tangani error autentikasi spesifik
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('Email atau Password salah! Silakan coba lagi.');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('Email belum dikonfirmasi. Silakan cek inbox email Anda.');
+        } else {
+          setError(`Gagal login: ${authError.message}`);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Cek apakah user terdaftar di tabel 'users' database
+      const { data: userData, error: dbError } = await supabase
+        .from('users')
+        .select('id, email, role')
+        .eq('email', authData.user.email)
+        .single();
+
+      if (dbError || !userData) {
+        // User berhasil login Auth tapi TIDAK ada di tabel users → akses ditolak
+        await supabase.auth.signOut();
+        setError('Akses ditolak. Akun Anda tidak terdaftar sebagai Admin.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 3: Login berhasil & user terdaftar di database
+      showToast(`Login berhasil! Selamat datang, ${userData.email}`, 'success');
+      onLoginSuccess();
+
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Terjadi kesalahan koneksi. Silakan coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -61,7 +108,7 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
                     fontSize: '0.95rem',
                     borderColor: error ? '#f87171' : '#cbd5e1' 
                   }}
-                  placeholder="admin@bank.co.id"
+                  placeholder="bjbcarpool@gmail.com"
                   value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
@@ -69,6 +116,7 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
                   }}
                   autoFocus
                   required
+                  disabled={isLoading}
                 />
                 <Mail size={18} className="text-slate-400" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
               </div>
@@ -95,6 +143,7 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
                     setError('');
                   }}
                   required
+                  disabled={isLoading}
                 />
                 <Lock size={18} className="text-slate-400" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
               </div>
@@ -110,13 +159,23 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
               type="submit"
               className="submit-btn"
               style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '1rem' }}
+              disabled={isLoading}
             >
-              <LogIn size={18} /> Login Ke Dashboard Admin
+              {isLoading ? (
+                <>
+                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Memproses Login...
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} /> Login Ke Dashboard Admin
+                </>
+              )}
             </button>
           </form>
 
           <button
             onClick={onBackToGuest}
+            disabled={isLoading}
             style={{
               width: '100%',
               padding: '0.65rem',
@@ -126,12 +185,13 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
               fontSize: '0.85rem',
               fontWeight: 600,
               color: '#475569',
-              cursor: 'pointer',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.4rem',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              opacity: isLoading ? 0.6 : 1
             }}
           >
             <ArrowLeft size={16} /> Kembali ke Beranda Guest

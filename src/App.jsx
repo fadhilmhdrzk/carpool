@@ -8,16 +8,26 @@ import Status from './components/admin/Status';
 import History from './components/admin/History';
 import Toast from './components/Toast';
 import Loading from './components/Loading';
+import ConfirmModal from './components/ConfirmModal';
+
+import { supabase } from './lib/supabase';
 
 import { 
   getStoredVehicles, 
   saveStoredVehicles, 
   getStoredTrips, 
   saveStoredTrips, 
-  getAdminAuthSession, 
-  setAdminAuthSession,
   resetAllDataToDefault 
 } from './utils/storage';
+import { 
+  fetchTripsFromSupabase, 
+  insertTripToSupabase, 
+  updateTripInSupabase 
+} from './lib/tripsService';
+import { 
+  fetchVehiclesFromSupabase, 
+  updateVehicleInSupabase 
+} from './lib/vehiclesService';
 
 import './App.css';
 
@@ -46,6 +56,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState(() => pathToPage(window.location.pathname));
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const [vehicles, setVehicles] = useState([]);
   const [trips, setTrips] = useState([]);
@@ -55,29 +66,134 @@ export default function App() {
   // Sync state with URL pathname & browser history on mount and popstate (Back/Forward)
   useEffect(() => {
     setIsPageLoading(true);
-    setVehicles(getStoredVehicles());
-    setTrips(getStoredTrips());
-    const isAuth = getAdminAuthSession();
-    setIsAdminAuthenticated(isAuth);
 
-    const initialPage = pathToPage(window.location.pathname);
-    if (initialPage.startsWith('admin') && !isAuth) {
-      setCurrentPage('login');
-      window.history.replaceState({}, '', '/login');
-    } else {
-      setCurrentPage(initialPage);
-    }
+    // Load data armada & trips dari Supabase (fallback ke localStorage)
+    const loadInitialData = async () => {
+      const [dbVehicles, dbTrips] = await Promise.all([
+        fetchVehiclesFromSupabase(),
+        fetchTripsFromSupabase()
+      ]);
 
-    const initTimer = setTimeout(() => {
+      const loadedVehicles = (dbVehicles && dbVehicles.length > 0) ? dbVehicles : getStoredVehicles();
+      const loadedTrips = (dbTrips && dbTrips.length > 0) ? dbTrips : getStoredTrips();
+
+      // Sinkronisasi otomatis: Jika ada trip status 'Aktif', pastikan status kendaraan 'Terpakai'
+      const syncedVehicles = loadedVehicles.map(v => {
+        const activeTrip = loadedTrips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
+        if (activeTrip) {
+          return {
+            ...v,
+            status: 'Terpakai',
+            currentBorrower: activeTrip.borrowerName,
+            currentDepartment: activeTrip.department,
+            currentReturnTime: activeTrip.returnTime,
+          };
+        } else if (v.status === 'Terpakai' && !activeTrip) {
+          return {
+            ...v,
+            status: 'Tersedia',
+            currentBorrower: null,
+            currentDepartment: null,
+            currentReturnTime: null,
+          };
+        }
+        return v;
+      });
+
+      setVehicles(syncedVehicles);
+      saveStoredVehicles(syncedVehicles);
+      setTrips(loadedTrips);
+      saveStoredTrips(loadedTrips);
+    };
+    loadInitialData();
+
+    // Cek Supabase auth session saat mount
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Verifikasi apakah user ada di tabel users
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, email, role')
+            .eq('email', session.user.email)
+            .single();
+
+          if (userData) {
+            setIsAdminAuthenticated(true);
+            const initialPage = pathToPage(window.location.pathname);
+            if (initialPage.startsWith('admin')) {
+              setCurrentPage(initialPage);
+            } else if (initialPage === 'login') {
+              // Sudah login, redirect ke dashboard
+              setCurrentPage('admin-dashboard');
+              window.history.replaceState({}, '', '/admin/dashboard');
+            } else {
+              setCurrentPage(initialPage);
+            }
+          } else {
+            // User ada di Auth tapi tidak di tabel users → sign out
+            await supabase.auth.signOut();
+            setIsAdminAuthenticated(false);
+            handleUnauthRoute();
+          }
+        } else {
+          setIsAdminAuthenticated(false);
+          handleUnauthRoute();
+        }
+      } catch (error) {
+        console.error('Error checking auth session:', error);
+        setIsAdminAuthenticated(false);
+        handleUnauthRoute();
+      }
+
       setIsPageLoading(false);
-    }, 400);
+    };
 
-    const handlePopState = () => {
+    const handleUnauthRoute = () => {
+      const initialPage = pathToPage(window.location.pathname);
+      if (initialPage.startsWith('admin')) {
+        setCurrentPage('login');
+        window.history.replaceState({}, '', '/login');
+      } else {
+        setCurrentPage(initialPage);
+      }
+    };
+
+    initAuth();
+
+    // Listen untuk perubahan auth state (login/logout dari tab lain, token expired, dll)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setIsAdminAuthenticated(false);
+          setCurrentPage('guest');
+          window.history.pushState({}, '', '/');
+        } else if (event === 'SIGNED_IN' && session) {
+          // Verifikasi user ada di tabel
+          const { data: userData } = await supabase
+            .from('users')
+            .select('id, email, role')
+            .eq('email', session.user.email)
+            .single();
+
+          if (userData) {
+            setIsAdminAuthenticated(true);
+          }
+        }
+      }
+    );
+
+    const handlePopState = async () => {
       setIsPageLoading(true);
       const page = pathToPage(window.location.pathname);
-      const authenticated = getAdminAuthSession();
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      const isAuth = !!session;
+
       setTimeout(() => {
-        if (page.startsWith('admin') && !authenticated) {
+        if (page.startsWith('admin') && !isAuth) {
           setCurrentPage('login');
           window.history.replaceState({}, '', '/login');
         } else {
@@ -89,7 +205,7 @@ export default function App() {
 
     window.addEventListener('popstate', handlePopState);
     return () => {
-      clearTimeout(initTimer);
+      subscription.unsubscribe();
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
@@ -127,7 +243,6 @@ export default function App() {
     setIsPageLoading(true);
     setTimeout(() => {
       setIsAdminAuthenticated(true);
-      setAdminAuthSession(true);
       setCurrentPage('admin-dashboard');
       window.history.pushState({}, '', '/admin/dashboard');
       showToast('Login Admin berhasil! Selamat datang di Dashboard.', 'success');
@@ -135,12 +250,16 @@ export default function App() {
     }, 300);
   };
 
-  // Admin Logout Handler
-  const handleAdminLogout = () => {
+  // Admin Logout Handler — gunakan Supabase signOut
+  const handleAdminLogout = async () => {
     setIsPageLoading(true);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
     setTimeout(() => {
       setIsAdminAuthenticated(false);
-      setAdminAuthSession(false);
       setCurrentPage('guest');
       window.history.pushState({}, '', '/');
       showToast('Sesi Admin berakhir. Kembali ke Mode Karyawan.', 'info');
@@ -159,8 +278,19 @@ export default function App() {
   };
 
   // Create new Trip / Booking (Used by both Admin & Guest)
-  const handleAddTrip = (newTrip) => {
-    const updatedTrips = [newTrip, ...trips];
+  const handleAddTrip = async (newTrip) => {
+    // 1. Simpan ke Supabase database (trips & vehicle status)
+    const dbTrip = await insertTripToSupabase(newTrip);
+    await updateVehicleInSupabase(newTrip.vehicleId, {
+      status: 'Terpakai',
+      currentBorrower: newTrip.borrowerName,
+      currentDepartment: newTrip.department,
+      currentReturnTime: newTrip.returnTime,
+    });
+    const tripToSave = dbTrip || newTrip;
+
+    // 2. Update state lokal & localStorage
+    const updatedTrips = [tripToSave, ...trips];
     setTrips(updatedTrips);
     saveStoredTrips(updatedTrips);
 
@@ -183,7 +313,16 @@ export default function App() {
   };
 
   // Admin: Update vehicle status manually
-  const handleUpdateVehicleStatus = (vehicleId, newStatus) => {
+  const handleUpdateVehicleStatus = async (vehicleId, newStatus) => {
+    // 1. Update ke Supabase database
+    await updateVehicleInSupabase(vehicleId, {
+      status: newStatus,
+      currentBorrower: newStatus === 'Tersedia' ? null : undefined,
+      currentDepartment: newStatus === 'Tersedia' ? null : undefined,
+      currentReturnTime: newStatus === 'Tersedia' ? null : undefined,
+    });
+
+    // 2. Update state lokal & localStorage
     const updatedVehicles = vehicles.map(v => {
       if (v.id === vehicleId) {
         return {
@@ -201,11 +340,34 @@ export default function App() {
     saveStoredVehicles(updatedVehicles);
   };
 
-  // Admin: Finish active trip for vehicle
-  const handleFinishTrip = (tripId, vehicleId) => {
+  // Admin: Finish active trip for vehicle (with optional rating)
+  const handleFinishTrip = async (tripId, vehicleId, rating = null, ratingDescription = '') => {
+    const actualReturnTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    // 1. Update ke Supabase database (trips & vehicle status)
+    await updateTripInSupabase(tripId, vehicleId, {
+      status: 'Selesai',
+      rating,
+      ratingDescription,
+      actualReturnTime
+    });
+
+    await updateVehicleInSupabase(vehicleId, {
+      status: 'Tersedia',
+      currentBorrower: null,
+      currentDepartment: null,
+      currentReturnTime: null,
+    });
+
+    // 2. Update state lokal & localStorage
     const updatedTrips = trips.map(t => {
       if ((tripId && t.id === tripId) || (vehicleId && t.vehicleId === vehicleId && t.status === 'Aktif')) {
-        return { ...t, status: 'Selesai' };
+        return { 
+          ...t, 
+          status: 'Selesai',
+          actualReturnTime,
+          ...(rating && { rating, ratingDescription }) 
+        };
       }
       return t;
     });
@@ -228,6 +390,30 @@ export default function App() {
     saveStoredVehicles(updatedVehicles);
   };
 
+  // Admin: Edit vehicle details (Plate Number & Driver Name)
+  const handleEditVehicleDetails = async (vehicleId, { plateNumber, driverName }) => {
+    // 1. Update ke Supabase database
+    await updateVehicleInSupabase(vehicleId, {
+      plateNumber,
+      driverName
+    });
+
+    // 2. Update state lokal & localStorage
+    const updatedVehicles = vehicles.map(v => {
+      if (v.id === vehicleId) {
+        return {
+          ...v,
+          plateNumber: plateNumber.trim().toUpperCase(),
+          driverName: driverName.trim(),
+        };
+      }
+      return v;
+    });
+
+    setVehicles(updatedVehicles);
+    saveStoredVehicles(updatedVehicles);
+  };
+
   const isAdminView = currentPage.startsWith('admin') && isAdminAuthenticated;
 
   return (
@@ -239,7 +425,7 @@ export default function App() {
           <Sidebar
             currentPage={currentPage}
             onNavigateTo={handleNavigateTo}
-            onAdminLogout={handleAdminLogout}
+            onAdminLogout={() => setIsLogoutModalOpen(true)}
             vehicleCount={vehicles.length}
             tripCount={trips.filter(t => t.status === 'Selesai').length}
           />
@@ -271,6 +457,7 @@ export default function App() {
                   vehicles={vehicles}
                   trips={trips}
                   onUpdateVehicleStatus={handleUpdateVehicleStatus}
+                  onEditVehicleDetails={handleEditVehicleDetails}
                   onFinishTrip={handleFinishTrip}
                   showToast={showToast}
                 />
@@ -321,6 +508,17 @@ export default function App() {
           </footer>
         </div>
       )}
+
+      {/* Modal Konfirmasi Logout Admin */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        title="Konfirmasi Logout Admin"
+        message="Apakah Anda yakin ingin keluar dari sesi Admin dan kembali ke Mode Karyawan?"
+        confirmText="Ya, Keluar"
+        confirmVariant="danger"
+        onConfirm={handleAdminLogout}
+        onClose={() => setIsLogoutModalOpen(false)}
+      />
 
       {/* Toast & Loading Screen */}
       <Toast toasts={toasts} />

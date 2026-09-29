@@ -1,8 +1,7 @@
 import { INITIAL_VEHICLES, INITIAL_TRIPS } from '../data/mockData';
 
-const VEHICLES_KEY = 'bank_carpool_vehicles_v3';
-const TRIPS_KEY = 'bank_carpool_trips_v2';
-const ADMIN_AUTH_KEY = 'bank_carpool_admin_session_v1';
+const VEHICLES_KEY = 'bank_carpool_vehicles_v4';
+const TRIPS_KEY = 'bank_carpool_trips_v4';
 
 export const getStoredVehicles = () => {
   try {
@@ -53,22 +52,6 @@ export const saveStoredTrips = (trips) => {
     localStorage.setItem(TRIPS_KEY, JSON.stringify(trips));
   } catch (error) {
     console.error("Error saving trips to localStorage:", error);
-  }
-};
-
-export const getAdminAuthSession = () => {
-  try {
-    return localStorage.getItem(ADMIN_AUTH_KEY) === 'true';
-  } catch {
-    return false;
-  }
-};
-
-export const setAdminAuthSession = (isAuthenticated) => {
-  try {
-    localStorage.setItem(ADMIN_AUTH_KEY, isAuthenticated ? 'true' : 'false');
-  } catch (error) {
-    console.error("Error setting admin auth session:", error);
   }
 };
 

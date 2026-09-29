@@ -36,8 +36,16 @@ export default function AdminDashboardPage({
 
   // Compute Real-time Statistics
   const totalVehicles = vehicles.length;
-  const availableCount = vehicles.filter(v => v.status === 'Tersedia').length;
-  const inUseCount = vehicles.filter(v => v.status === 'Terpakai').length;
+  const availableCount = vehicles.filter(v => {
+    const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
+    const effStatus = activeTrip ? 'Terpakai' : v.status;
+    return effStatus === 'Tersedia';
+  }).length;
+  const inUseCount = vehicles.filter(v => {
+    const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
+    const effStatus = activeTrip ? 'Terpakai' : v.status;
+    return effStatus === 'Terpakai';
+  }).length;
   const maintenanceCount = vehicles.filter(v => v.status === 'Perawatan').length;
 
   // Selected Department object
@@ -168,49 +176,57 @@ export default function AdminDashboardPage({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {vehicles.slice(0, 5).map(v => (
-              <div 
-                key={v.id} 
-                style={{ 
-                  padding: '0.75rem 1rem', 
-                  borderRadius: '8px', 
-                  background: v.status === 'Terpakai' ? '#fffbeb' : v.status === 'Tersedia' ? '#f0fdf4' : '#f8fafc',
-                  border: `1px solid ${v.status === 'Terpakai' ? '#fde68a' : v.status === 'Tersedia' ? '#bbf7d0' : '#e2e8f0'}`,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>{v.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                    {v.plateNumber} • Driver: {v.driverName || 'Driver Operasional'}
-                  </div>
-                  {v.status === 'Terpakai' && v.currentBorrower && (
-                    <div style={{ fontSize: '0.725rem', color: '#d97706', marginTop: '2px', fontWeight: 600 }}>
-                      Dipakai: {v.currentBorrower} ({v.currentDepartment}) - Kembali: {v.currentReturnTime}
+            {vehicles.slice(0, 5).map(v => {
+              const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
+              const effectiveStatus = activeTrip ? 'Terpakai' : v.status;
+              const effectiveBorrower = activeTrip ? activeTrip.borrowerName : v.currentBorrower;
+              const effectiveDepartment = activeTrip ? activeTrip.department : v.currentDepartment;
+              const effectiveReturnTime = activeTrip ? activeTrip.returnTime : v.currentReturnTime;
+
+              return (
+                <div 
+                  key={v.id} 
+                  style={{ 
+                    padding: '0.75rem 1rem', 
+                    borderRadius: '8px', 
+                    background: effectiveStatus === 'Terpakai' ? '#fffbeb' : effectiveStatus === 'Tersedia' ? '#f0fdf4' : '#f8fafc',
+                    border: `1px solid ${effectiveStatus === 'Terpakai' ? '#fde68a' : effectiveStatus === 'Tersedia' ? '#bbf7d0' : '#e2e8f0'}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>{v.name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {v.plateNumber} • Driver: {v.driverName || 'Driver Operasional'}
                     </div>
-                  )}
+                    {effectiveStatus === 'Terpakai' && effectiveBorrower && (
+                      <div style={{ fontSize: '0.725rem', color: '#d97706', marginTop: '2px', fontWeight: 600 }}>
+                        Dipakai: {effectiveBorrower} {effectiveDepartment ? `(${effectiveDepartment})` : ''} - Kembali: {effectiveReturnTime}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    {effectiveStatus === 'Tersedia' && (
+                      <span className="status-badge ready" style={{ fontSize: '0.725rem' }}>
+                        <CheckCircle2 size={11} /> Tersedia
+                      </span>
+                    )}
+                    {effectiveStatus === 'Terpakai' && (
+                      <span className="status-badge in-use" style={{ fontSize: '0.725rem' }}>
+                        <Clock size={11} /> Terpakai
+                      </span>
+                    )}
+                    {effectiveStatus === 'Perawatan' && (
+                      <span className="status-badge maintenance" style={{ fontSize: '0.725rem' }}>
+                        <Wrench size={11} /> Service
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {v.status === 'Tersedia' && (
-                    <span className="status-badge ready" style={{ fontSize: '0.725rem' }}>
-                      <CheckCircle2 size={11} /> Tersedia
-                    </span>
-                  )}
-                  {v.status === 'Terpakai' && (
-                    <span className="status-badge in-use" style={{ fontSize: '0.725rem' }}>
-                      <Clock size={11} /> Terpakai
-                    </span>
-                  )}
-                  {v.status === 'Perawatan' && (
-                    <span className="status-badge maintenance" style={{ fontSize: '0.725rem' }}>
-                      <Wrench size={11} /> Service
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div style={{ background: '#f8fafc', padding: '0.85rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.775rem', color: '#475569', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
