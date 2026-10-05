@@ -112,17 +112,8 @@ export default function VehicleStatusPage({
     setRatingModal({ isOpen: false, vehicle: null, tripId: null });
   };
 
-  // Handle skip rating (lewati tanpa memberi rating)
-  const handleSkipRating = () => {
-    const { vehicle, tripId } = ratingModal;
-    if (!vehicle) return;
-
-    onFinishTrip(tripId, vehicle.id);
-    showToast(
-      `Tugas dinas ${vehicle.name} (${vehicle.plateNumber}) telah diselesaikan! Mobil kembali TERSEDIA.`,
-      'success'
-    );
-
+  // Handle tutup modal rating (tanpa menyelesaikan dinas)
+  const handleCloseRatingModal = () => {
     setRatingModal({ isOpen: false, vehicle: null, tripId: null });
   };
 
@@ -455,7 +446,7 @@ export default function VehicleStatusPage({
         isOpen={ratingModal.isOpen}
         vehicle={ratingModal.vehicle}
         onSubmitRating={handleSubmitRating}
-        onClose={handleSkipRating}
+        onClose={handleCloseRatingModal}
       />
 
       {/* Confirmation Modal Pop-up */}

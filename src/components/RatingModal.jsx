@@ -57,11 +57,17 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
   };
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
+    <div className="modal-overlay">
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '460px' }}
+        style={{
+          maxWidth: '460px',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '90vh',
+          overflow: 'hidden'
+        }}
       >
         {/* Header */}
         <div style={{
@@ -113,7 +119,7 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
         </div>
 
         {/* Body */}
-        <div style={{ padding: '1.75rem' }}>
+        <div style={{ padding: '1.75rem', overflowY: 'auto', flex: 1 }}>
           {/* Vehicle Info */}
           <div style={{
             background: '#f8fafc',
@@ -324,51 +330,37 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
           background: '#f8fafc',
           borderTop: '1px solid #e2e8f0',
           display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '0.75rem'
+          justifyContent: 'center',
+          flexShrink: 0
         }}>
-          <button
-            onClick={handleClose}
-            style={{
-              padding: '0.6rem 1.15rem',
-              borderRadius: '8px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#475569',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            Lewati
-          </button>
           <button
             onClick={handleSubmit}
             disabled={!canSubmit || isSubmitting}
             style={{
-              padding: '0.6rem 1.35rem',
-              borderRadius: '8px',
+              padding: '0.7rem 2rem',
+              borderRadius: '10px',
               border: 'none',
               background: canSubmit
                 ? 'linear-gradient(135deg, #2563eb, #1d4ed8)'
                 : '#cbd5e1',
               color: '#ffffff',
               fontWeight: 700,
-              fontSize: '0.85rem',
+              fontSize: '0.9rem',
               cursor: canSubmit ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.5rem',
               boxShadow: canSubmit
-                ? '0 4px 12px rgba(37, 99, 235, 0.3)'
+                ? '0 4px 16px rgba(37, 99, 235, 0.35)'
                 : 'none',
               transition: 'all 0.25s ease',
-              opacity: isSubmitting ? 0.7 : 1
+              opacity: isSubmitting ? 0.7 : 1,
+              width: '100%',
+              justifyContent: 'center'
             }}
           >
-            <Send size={15} />
-            {isSubmitting ? 'Menyimpan...' : 'Kirim Rating'}
+            <Send size={16} />
+            {isSubmitting ? 'Menyimpan...' : 'Selesaikan Dinas & Kirim Rating'}
           </button>
         </div>
       </div>

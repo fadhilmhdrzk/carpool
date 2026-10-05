@@ -12,26 +12,26 @@ import ConfirmModal from './components/ConfirmModal';
 
 import { supabase } from './lib/supabase';
 
-import { 
-  getStoredVehicles, 
-  saveStoredVehicles, 
-  getStoredTrips, 
-  saveStoredTrips, 
-  resetAllDataToDefault 
+import {
+  getStoredVehicles,
+  saveStoredVehicles,
+  getStoredTrips,
+  saveStoredTrips,
+  resetAllDataToDefault
 } from './utils/storage';
-import { 
-  fetchTripsFromSupabase, 
-  insertTripToSupabase, 
-  updateTripInSupabase 
+import {
+  fetchTripsFromSupabase,
+  insertTripToSupabase,
+  updateTripInSupabase
 } from './lib/tripsService';
-import { 
-  fetchVehiclesFromSupabase, 
-  updateVehicleInSupabase 
+import {
+  fetchVehiclesFromSupabase,
+  updateVehicleInSupabase
 } from './lib/vehiclesService';
 
 import './App.css';
 
-// Helper URL Path Mappers & Route Helpers
+// Helper URL Path Mappersssss
 const pathToPage = (path) => {
   const cleanPath = (path || '/').toLowerCase().replace(/\/$/, '') || '/';
   if (cleanPath === '/login') return 'login';
@@ -111,7 +111,7 @@ export default function App() {
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (session) {
           // Verifikasi apakah user ada di tabel users
           const { data: userData } = await supabase
@@ -188,7 +188,7 @@ export default function App() {
     const handlePopState = async () => {
       setIsPageLoading(true);
       const page = pathToPage(window.location.pathname);
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       const isAuth = !!session;
 
@@ -362,11 +362,11 @@ export default function App() {
     // 2. Update state lokal & localStorage
     const updatedTrips = trips.map(t => {
       if ((tripId && t.id === tripId) || (vehicleId && t.vehicleId === vehicleId && t.status === 'Aktif')) {
-        return { 
-          ...t, 
+        return {
+          ...t,
           status: 'Selesai',
           actualReturnTime,
-          ...(rating && { rating, ratingDescription }) 
+          ...(rating && { rating, ratingDescription })
         };
       }
       return t;
