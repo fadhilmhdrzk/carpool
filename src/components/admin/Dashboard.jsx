@@ -198,9 +198,6 @@ export default function AdminDashboardPage({
                 >
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>{v.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      {v.plateNumber}
-                    </div>
                     {effectiveStatus === 'Terpakai' && effectiveBorrower && (
                       <div style={{ fontSize: '0.725rem', color: '#d97706', marginTop: '2px', fontWeight: 600 }}>
                         Dipakai: {effectiveBorrower} {effectiveDepartment ? `(${effectiveDepartment})` : ''} - Kembali: {effectiveReturnTime}
