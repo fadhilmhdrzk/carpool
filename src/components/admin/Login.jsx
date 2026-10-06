@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ShieldCheck, Lock, ArrowLeft, Mail, LogIn, Car, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
   const [email, setEmail] = useState('');
@@ -20,6 +20,14 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
     setError('');
 
     try {
+      // Jika Supabase belum dikonfigurasi, gunakan fallback login admin offline
+      if (!isSupabaseConfigured) {
+        showToast(`Login Admin (Mode Offline / Local Data) berhasil!`, 'success');
+        onLoginSuccess();
+        setIsLoading(false);
+        return;
+      }
+
       // Step 1: Login ke Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -28,7 +36,9 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
 
       if (authError) {
         // Tangani error autentikasi spesifik
-        if (authError.message.includes('Invalid login credentials')) {
+        if (authError.message.includes('Invalid API key')) {
+          setError('API Key Supabase tidak valid (salah/kadaluarsa). Periksa file .env atau klik tombol Mode Offline di bawah.');
+        } else if (authError.message.includes('Invalid login credentials')) {
           setError('Email atau Password salah! Silakan coba lagi.');
         } else if (authError.message.includes('Email not confirmed')) {
           setError('Email belum dikonfirmasi. Silakan cek inbox email Anda.');
@@ -64,6 +74,11 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOfflineLogin = () => {
+    showToast('Masuk ke Mode Admin (Offline / Local Storage)!', 'info');
+    onLoginSuccess();
   };
 
   return (
@@ -158,7 +173,7 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
             <button
               type="submit"
               className="submit-btn"
-              style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '1rem' }}
+              style={{ width: '100%', padding: '0.85rem', fontSize: '1rem', marginBottom: '0.75rem' }}
               disabled={isLoading}
             >
               {isLoading ? (
@@ -172,6 +187,30 @@ export default function Login({ onLoginSuccess, onBackToGuest, showToast }) {
               )}
             </button>
           </form>
+
+          <button
+            onClick={handleOfflineLogin}
+            disabled={isLoading}
+            style={{
+              width: '100%',
+              padding: '0.65rem',
+              background: '#f1f5f9',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              color: '#334155',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.4rem',
+              marginBottom: '0.5rem',
+              transition: 'all 0.2s',
+            }}
+          >
+            ⚡ Masuk Mode Offline / Demo (Tanpa Supabase)
+          </button>
 
           <button
             onClick={onBackToGuest}

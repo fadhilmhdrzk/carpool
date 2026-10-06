@@ -16,6 +16,7 @@ import {
 import ConfirmModal from '../ConfirmModal';
 import TicketModal from '../TicketModal';
 import RatingModal from '../RatingModal';
+import { AVAILABLE_DRIVERS } from '../../data/mockData';
 
 export default function VehicleStatusPage({ 
   vehicles, 
@@ -55,7 +56,7 @@ export default function VehicleStatusPage({
   const filteredVehicles = vehicles.filter(v => {
     const matchesSearch = 
       v.name.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
-      v.plateNumber.toLowerCase().includes(vehicleSearch.toLowerCase()) ||
+      (v.plateNumber && v.plateNumber.toLowerCase().includes(vehicleSearch.toLowerCase())) ||
       (v.currentBorrower && v.currentBorrower.toLowerCase().includes(vehicleSearch.toLowerCase())) ||
       (v.currentDepartment && v.currentDepartment.toLowerCase().includes(vehicleSearch.toLowerCase())) ||
       (v.driverName && v.driverName.toLowerCase().includes(vehicleSearch.toLowerCase()));
@@ -86,26 +87,26 @@ export default function VehicleStatusPage({
       });
     } else if (actionType === 'setService') {
       onUpdateVehicleStatus(vehicle.id, 'Perawatan');
-      showToast(`Status ${vehicle.name} (${vehicle.plateNumber}) diubah menjadi PERAWATAN (SERVICE)`, 'warning');
+      showToast(`Status ${vehicle.name} diubah menjadi PERAWATAN (SERVICE)`, 'warning');
     } else if (actionType === 'finishService') {
       onUpdateVehicleStatus(vehicle.id, 'Tersedia');
-      showToast(`Perawatan ${vehicle.name} (${vehicle.plateNumber}) telah selesai! Mobil kembali TERSEDIA.`, 'success');
+      showToast(`Perawatan ${vehicle.name} telah selesai! Mobil kembali TERSEDIA.`, 'success');
     }
 
     setConfirmModal({ isOpen: false, vehicle: null, actionType: '' });
   };
 
-  // Handle rating submission setelah selesaikan dinas
-  const handleSubmitRating = (rating, description) => {
+  // Handle rating, driver & plate submission setelah selesaikan dinas
+  const handleSubmitRating = (rating, description, driverName, plateNumber) => {
     const { vehicle, tripId } = ratingModal;
     if (!vehicle) return;
 
-    // Finish trip with rating and description
-    onFinishTrip(tripId, vehicle.id, rating, description);
+    // Finish trip with rating, description, driverName, and plateNumber
+    onFinishTrip(tripId, vehicle.id, rating, description, driverName, plateNumber);
 
     const ratingLabel = rating === 1 ? 'Buruk' : rating === 3 ? 'Baik' : 'Sangat Baik';
     showToast(
-      `Tugas dinas ${vehicle.name} (${vehicle.plateNumber}) diselesaikan dengan rating: ${ratingLabel} (${rating}⭐)`,
+      `Tugas dinas ${vehicle.name} diselesaikan! Driver: ${driverName}, Plat: ${plateNumber}, Rating: ${ratingLabel} (${rating}⭐)`,
       'success'
     );
 
@@ -127,31 +128,30 @@ export default function VehicleStatusPage({
     });
   };
 
-  // Simpan Perubahan Edit Armada
+  // Simpan Perubahan Edit Armada (Plat Mobil)
   const handleSaveEditVehicle = (e) => {
     e.preventDefault();
-    const { vehicle, plateNumber, driverName } = editModal;
+    const { vehicle, plateNumber } = editModal;
     if (!vehicle) return;
 
-    if (!plateNumber.trim() || !driverName.trim()) {
-      showToast('Nomor Plat dan Nama Driver wajib diisi!', 'warning');
+    if (!plateNumber.trim()) {
+      showToast('Nomor Plat wajib diisi!', 'warning');
       return;
     }
 
     if (onEditVehicleDetails) {
       onEditVehicleDetails(vehicle.id, {
-        plateNumber: plateNumber.trim(),
-        driverName: driverName.trim()
+        plateNumber: plateNumber.trim()
       });
     }
 
-    showToast(`Detail ${vehicle.name} berhasil diperbarui! (Plat: ${plateNumber.trim().toUpperCase()}, Driver: ${driverName.trim()})`, 'success');
+    showToast(`Detail ${vehicle.name} berhasil diperbarui! (Plat: ${plateNumber.trim().toUpperCase()})`, 'success');
     setEditModal({ isOpen: false, vehicle: null, plateNumber: '', driverName: '' });
   };
 
   return (
     <div>
-      {/* Table Container */}
+      {/* Table Container - Status Mobil */}
       <div className="table-container">
         {/* Header Bar & Search Controls */}
         <div className="table-controls" style={{ flexWrap: 'wrap', gap: '1rem' }}>
@@ -160,7 +160,7 @@ export default function VehicleStatusPage({
             <Search size={18} className="text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama mobil, nomor plat, nama driver, peminjam, unit..."
+              placeholder="Cari nama mobil, peminjam, unit..."
               value={vehicleSearch}
               onChange={(e) => setVehicleSearch(e.target.value)}
             />
@@ -191,44 +191,32 @@ export default function VehicleStatusPage({
             <tr>
               <th>No</th>
               <th>Armada Mobil Dinas</th>
-              <th>Nomor Plat</th>
               <th>Status Mobil</th>
               <th>Peminjam / Unit Saat Ini</th>
               <th>Est. Jam Kembali</th>
-              <th>Rata-rata Rating</th>
               <th>Aksi Ubah Status</th>
             </tr>
           </thead>
           <tbody>
             {filteredVehicles.length === 0 ? (
               <tr>
-                <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                <td colSpan="6" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
                   Tidak ada data mobil yang cocok dengan pencarian / filter.
                 </td>
               </tr>
             ) : (
               filteredVehicles.map((v, index) => {
-                const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
-                const effectiveStatus = activeTrip ? 'Terpakai' : v.status;
-                const effectiveBorrower = activeTrip ? activeTrip.borrowerName : v.currentBorrower;
-                const effectiveDepartment = activeTrip ? activeTrip.department : v.currentDepartment;
-                const effectiveReturnTime = activeTrip ? activeTrip.returnTime : v.currentReturnTime;
-
-                // Hitung rata-rata rating dari semua trip selesai yang sudah di-rating
-                const ratedTrips = trips.filter(t => t.vehicleId === v.id && t.status === 'Selesai' && t.rating);
-                const avgRating = ratedTrips.length > 0
-                  ? ratedTrips.reduce((sum, t) => sum + t.rating, 0) / ratedTrips.length
-                  : 0;
+                const activeTrip = trips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+                const effectiveStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
+                const effectiveBorrower = activeTrip ? activeTrip.borrowerName : null;
+                const effectiveDepartment = activeTrip ? activeTrip.department : null;
+                const effectiveReturnTime = activeTrip ? activeTrip.returnTime : null;
 
                 return (
                   <tr key={v.id}>
                     <td style={{ fontWeight: 600, color: '#64748b' }}>{index + 1}</td>
                     <td>
                       <div style={{ fontWeight: 700, color: '#0f172a' }}>{v.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: 600 }}>Driver: {v.driverName || 'Driver Operasional'}</div>
-                    </td>
-                    <td>
-                      <span className="vehicle-plate" style={{ fontSize: '0.8rem' }}>{v.plateNumber}</span>
                     </td>
                     <td>
                       {effectiveStatus === 'Tersedia' && (
@@ -275,32 +263,6 @@ export default function VehicleStatusPage({
                         </div>
                       ) : (
                         <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
-                      )}
-                    </td>
-                    <td>
-                      {ratedTrips.length > 0 ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                size={14}
-                                fill={star <= Math.round(avgRating) ? '#f59e0b' : 'none'}
-                                color={star <= Math.round(avgRating) ? '#f59e0b' : '#cbd5e1'}
-                              />
-                            ))}
-                          </div>
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>
-                            {avgRating % 1 === 0 ? avgRating : avgRating.toFixed(1)}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            ({ratedTrips.length})
-                          </span>
-                        </div>
-                      ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
-                          Belum ada rating
-                        </span>
                       )}
                     </td>
                     <td>
@@ -352,35 +314,26 @@ export default function VehicleStatusPage({
                           </button>
                         )}
 
-                        {/* 3. Tombol Edit Detail (HANYA MUNCUL JIKA MOBIL TIDAK TERPAKAI) */}
-                        {effectiveStatus !== 'Terpakai' && (
+                        {/* 4. Tombol Info (MUNCUL APABILA MOBIL TERPAKAI) */}
+                        {effectiveStatus === 'Terpakai' && (
                           <button
-                            onClick={() => handleOpenEditModal(v)}
-                            style={{
-                              padding: '0.35rem 0.65rem',
-                              fontSize: '0.75rem',
-                              borderRadius: '6px',
-                              background: '#ffffff',
-                              color: '#2563eb',
-                              fontWeight: 600,
-                              border: '1px solid #93c5fd',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                              whiteSpace: 'nowrap',
-                              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.1)'
+                            onClick={() => {
+                              const tripToShow = activeTrip || {
+                                id: `trip-info-${v.id}`,
+                                ticketCode: `CP-${new Date().getFullYear()}-00${v.id.replace('v-', '')}`,
+                                borrowerName: v.currentBorrower || 'Karyawan Dinas',
+                                department: v.currentDepartment || 'Operasional',
+                                vehicleName: v.name,
+                                plateNumber: v.plateNumber || 'D 1185 ALT',
+                                date: new Date().toISOString().split('T')[0],
+                                departureTime: '08:30',
+                                returnTime: v.currentReturnTime || '17:00',
+                                destination: 'Kunjungan / Perjalanan Dinas Operasional Bank',
+                                status: 'Aktif',
+                                submittedBy: `${v.currentBorrower || 'Karyawan'} (Self-Service)`
+                              };
+                              setSelectedTrip(tripToShow);
                             }}
-                            title="Edit Nomor Plat & Nama Driver"
-                          >
-                            <Edit3 size={13} /> Edit
-                          </button>
-                        )}
-
-                        {/* 4. Tombol Info (HANYA MUNCUL JIKA MOBIL TERPAKAI) */}
-                        {effectiveStatus === 'Terpakai' && activeTrip && (
-                          <button
-                            onClick={() => setSelectedTrip(activeTrip)}
                             style={{
                               padding: '0.35rem 0.65rem',
                               fontSize: '0.75rem',
@@ -430,6 +383,110 @@ export default function VehicleStatusPage({
             )}
           </tbody>
         </table>
+        </div>
+      </div>
+
+      {/* TABEL PERFORMA & RATING DRIVER OPERASIONAL */}
+      <div className="table-container" style={{ marginTop: '2rem' }}>
+        <div style={{ padding: '1.15rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '12px 12px 0 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <UserCheck size={20} style={{ color: '#2563eb' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+              TABEL RATING & PERFORMA DRIVER OPERASIONAL
+            </h3>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: '#1e40af', backgroundColor: '#dbeafe', padding: '3px 10px', borderRadius: '20px', fontWeight: 700 }}>
+            {AVAILABLE_DRIVERS.length} Driver Aktif
+          </span>
+        </div>
+
+        <div className="table-scroll-wrapper">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Nama Driver Operasional</th>
+                <th>Total Perjalanan Selesai</th>
+                <th>Rata-Rata Rating Driver</th>
+                <th>Kategori Layanan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {AVAILABLE_DRIVERS.map((driverName, idx) => {
+                const driverTrips = trips.filter(t => t.status === 'Selesai' && t.driverName === driverName);
+                const ratedTrips = driverTrips.filter(t => t.rating);
+                const avgRating = ratedTrips.length > 0
+                  ? ratedTrips.reduce((sum, t) => sum + t.rating, 0) / ratedTrips.length
+                  : 0;
+
+                return (
+                  <tr key={driverName}>
+                    <td style={{ fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
+                    <td>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem' }}>
+                        {driverName}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        backgroundColor: '#eff6ff',
+                        color: '#1d4ed8',
+                        padding: '0.2rem 0.55rem',
+                        borderRadius: '6px'
+                      }}>
+                        {driverTrips.length} Perjalanan
+                      </span>
+                    </td>
+                    <td>
+                      {ratedTrips.length > 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={14}
+                                fill={star <= Math.round(avgRating) ? '#f59e0b' : 'none'}
+                                color={star <= Math.round(avgRating) ? '#f59e0b' : '#cbd5e1'}
+                              />
+                            ))}
+                          </div>
+                          <span style={{ fontWeight: 800, fontSize: '0.875rem', color: '#0f172a' }}>
+                            {avgRating % 1 === 0 ? avgRating : avgRating.toFixed(1)}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            ({ratedTrips.length})
+                          </span>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                          Belum ada rating
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {ratedTrips.length > 0 ? (
+                        <span style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: avgRating <= 2 ? '#ef4444' : avgRating <= 3.9 ? '#d97706' : '#10b981',
+                          backgroundColor: avgRating <= 2 ? '#fef2f2' : avgRating <= 3.9 ? '#fffbeb' : '#ecfdf5',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '6px',
+                          border: `1px solid ${avgRating <= 2 ? '#fecaca' : avgRating <= 3.9 ? '#fde68a' : '#a7f3d0'}`
+                        }}>
+                          {avgRating <= 2 ? 'Buruk' : avgRating <= 3.9 ? 'Baik' : 'Sangat Baik'}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -571,25 +628,6 @@ export default function VehicleStatusPage({
                     required
                   />
                   <Car size={18} className="text-slate-400" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
-                </div>
-              </div>
-
-              {/* Field Nama Driver */}
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label" style={{ fontWeight: 700, fontSize: '0.85rem' }}>
-                  Nama Driver Operasional
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    className="form-input"
-                    style={{ paddingLeft: '2.5rem', fontSize: '0.9rem' }}
-                    placeholder="Contoh: Sofwan"
-                    value={editModal.driverName}
-                    onChange={(e) => setEditModal(prev => ({ ...prev, driverName: e.target.value }))}
-                    required
-                  />
-                  <UserCheck size={18} className="text-slate-400" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 

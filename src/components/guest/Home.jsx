@@ -15,6 +15,7 @@ import BookingModal from './BookingModal';
 
 export default function Home({ 
   vehicles = [], 
+  trips = [],
   onSubmitRequest, 
   showToast 
 }) {
@@ -22,7 +23,9 @@ export default function Home({
   const [selectedVehicleForModal, setSelectedVehicleForModal] = useState(null);
 
   const handleSelectVehicle = (vehicle) => {
-    if (vehicle.status === 'Tersedia') {
+    const activeTrip = trips.find(t => String(t.vehicleId) === String(vehicle.id) && t.status === 'Aktif');
+    const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
+    if (effectiveStatus === 'Tersedia') {
       setSelectedVehicleForModal(vehicle);
       setIsModalOpen(true);
     }
@@ -51,7 +54,11 @@ export default function Home({
 
         <div className="vehicles-grid">
           {vehicles.map(vehicle => {
-            const isAvailable = vehicle.status === 'Tersedia';
+            const activeTrip = trips.find(t => String(t.vehicleId) === String(vehicle.id) && t.status === 'Aktif');
+            const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
+            const effectiveBorrower = activeTrip ? activeTrip.borrowerName : vehicle.currentBorrower;
+            const effectiveReturnTime = activeTrip ? activeTrip.returnTime : vehicle.currentReturnTime;
+            const isAvailable = effectiveStatus === 'Tersedia';
 
             return (
               <div 
@@ -65,20 +72,19 @@ export default function Home({
                 <div className="vehicle-card-top">
                   <div>
                     <div className="vehicle-name">{vehicle.name}</div>
-                    <div className="vehicle-plate">{vehicle.plateNumber}</div>
                   </div>
                   <div>
-                    {vehicle.status === 'Tersedia' && (
+                    {effectiveStatus === 'Tersedia' && (
                       <span className="status-badge ready">
                         <CheckCircle2 size={12} /> Tersedia
                       </span>
                     )}
-                    {vehicle.status === 'Terpakai' && (
+                    {effectiveStatus === 'Terpakai' && (
                       <span className="status-badge in-use">
                         <Clock size={12} /> Terpakai
                       </span>
                     )}
-                    {vehicle.status === 'Perawatan' && (
+                    {effectiveStatus === 'Perawatan' && (
                       <span className="status-badge maintenance">
                         <Wrench size={12} /> Perawatan
                       </span>
@@ -86,16 +92,12 @@ export default function Home({
                   </div>
                 </div>
 
-                <div className="vehicle-details" style={{ marginTop: '0.65rem' }}>
-                  <div className="detail-item" style={{ fontWeight: 600, color: '#334155' }}>
-                    <User size={15} style={{ color: '#2563eb' }} /> Driver : <strong>{vehicle.driverName || 'Driver Operasional'}</strong>
-                  </div>
-                </div>
-
-                {vehicle.status === 'Terpakai' && (
+                {effectiveStatus === 'Terpakai' && (
                   <div className="in-use-info">
-                    <p><strong>Penanggung Jawab:</strong> {vehicle.currentBorrower || 'Dinas Aktif'}</p>
-                    <p><strong>Perkiraan Jam Kembali:</strong> Pkl {vehicle.currentReturnTime} WIB</p>
+                    <p><strong>Penanggung Jawab:</strong> {effectiveBorrower || 'Dinas Aktif'}</p>
+                    {effectiveReturnTime && (
+                      <p><strong>Perkiraan Jam Kembali:</strong> Pkl {effectiveReturnTime} WIB</p>
+                    )}
                   </div>
                 )}
 

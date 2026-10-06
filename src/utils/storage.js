@@ -1,7 +1,7 @@
 import { INITIAL_VEHICLES, INITIAL_TRIPS } from '../data/mockData';
 
-const VEHICLES_KEY = 'bank_carpool_vehicles_v4';
-const TRIPS_KEY = 'bank_carpool_trips_v4';
+const VEHICLES_KEY = 'bank_carpool_vehicles_v6';
+const TRIPS_KEY = 'bank_carpool_trips_v6';
 
 export const getStoredVehicles = () => {
   try {
@@ -11,14 +11,12 @@ export const getStoredVehicles = () => {
       return INITIAL_VEHICLES;
     }
     const vehicles = JSON.parse(data);
-    if (Array.isArray(vehicles) && vehicles.length < INITIAL_VEHICLES.length) {
-      const existingIds = new Set(vehicles.map(v => v.id));
-      const missingVehicles = INITIAL_VEHICLES.filter(v => !existingIds.has(v.id));
-      const updatedVehicles = [...vehicles, ...missingVehicles];
-      localStorage.setItem(VEHICLES_KEY, JSON.stringify(updatedVehicles));
-      return updatedVehicles;
+    if (Array.isArray(vehicles)) {
+      const sliced = vehicles.slice(0, 8);
+      localStorage.setItem(VEHICLES_KEY, JSON.stringify(sliced));
+      return sliced;
     }
-    return vehicles;
+    return INITIAL_VEHICLES;
   } catch (error) {
     console.error("Error reading vehicles from localStorage:", error);
     return INITIAL_VEHICLES;

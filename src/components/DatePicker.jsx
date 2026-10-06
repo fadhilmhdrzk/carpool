@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 const MONTH_NAMES = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -8,16 +8,25 @@ const MONTH_NAMES = [
 
 const DAY_NAMES = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-export default function DatePicker({ value, onChange, label, required }) {
+export default function DatePicker({ 
+  value, 
+  onChange, 
+  label, 
+  required,
+  placeholder = 'Pilih Tanggal',
+  clearable = true,
+  align = 'left'
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
-  // Parse initial date value (YYYY-MM-DD) or default to today
-  const selectedDate = value ? new Date(value + 'T00:00:00') : new Date();
+  // Parse date value (YYYY-MM-DD) or null if empty
+  const selectedDate = value ? new Date(value + 'T00:00:00') : null;
+  const today = new Date();
   
   // Month & year being navigated in calendar view
-  const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
-  const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
+  const [viewYear, setViewYear] = useState((selectedDate || today).getFullYear());
+  const [viewMonth, setViewMonth] = useState((selectedDate || today).getMonth());
 
   // Close calendar popover on click outside
   useEffect(() => {
@@ -76,34 +85,25 @@ export default function DatePicker({ value, onChange, label, required }) {
 
   const handleQuickSelectToday = (e) => {
     e.preventDefault();
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-    const d = String(today.getDate()).padStart(2, '0');
+    const t = new Date();
+    const y = t.getFullYear();
+    const m = String(t.getMonth() + 1).padStart(2, '0');
+    const d = String(t.getDate()).padStart(2, '0');
     const dateStr = `${y}-${m}-${d}`;
     onChange(dateStr);
     setViewYear(y);
-    setViewMonth(today.getMonth());
+    setViewMonth(t.getMonth());
     setIsOpen(false);
   };
 
-  const handleQuickSelectTomorrow = (e) => {
-    e.preventDefault();
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const y = tomorrow.getFullYear();
-    const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const d = String(tomorrow.getDate()).padStart(2, '0');
-    const dateStr = `${y}-${m}-${d}`;
-    onChange(dateStr);
-    setViewYear(y);
-    setViewMonth(tomorrow.getMonth());
-    setIsOpen(false);
+  const handleClear = (e) => {
+    e.stopPropagation();
+    onChange('');
   };
 
   // Format display text (e.g. "Kamis, 24 Sep 2026")
   const formatFormattedDisplay = (dateObj) => {
-    if (!dateObj || isNaN(dateObj.getTime())) return 'Pilih Tanggal';
+    if (!dateObj || isNaN(dateObj.getTime())) return placeholder;
     const dayName = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][dateObj.getDay()];
     const dayNum = dateObj.getDate();
     const monthName = MONTH_NAMES[dateObj.getMonth()].substring(0, 3);
@@ -124,16 +124,16 @@ export default function DatePicker({ value, onChange, label, required }) {
 
   // Check if a day cell is today
   const isToday = (day) => {
-    const today = new Date();
+    const t = new Date();
     return (
-      today.getDate() === day &&
-      today.getMonth() === viewMonth &&
-      today.getFullYear() === viewYear
+      t.getDate() === day &&
+      t.getMonth() === viewMonth &&
+      t.getFullYear() === viewYear
     );
   };
 
   return (
-    <div className="custom-datepicker-container" ref={containerRef}>
+    <div className="custom-datepicker-container" ref={containerRef} style={{ width: 'auto' }}>
       {label && (
         <label className="form-label">
           <CalendarIcon size={16} /> {label}
@@ -144,16 +144,57 @@ export default function DatePicker({ value, onChange, label, required }) {
       <div 
         className={`datepicker-trigger-box ${isOpen ? 'active' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.65rem',
+          padding: '0.55rem 0.85rem',
+          borderRadius: '8px',
+          border: '1px solid #cbd5e1',
+          background: '#ffffff',
+          cursor: 'pointer',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+        }}
       >
-        <CalendarIcon size={18} className="text-blue-600" />
-        <span className="datepicker-display-value">
+        <CalendarIcon size={18} style={{ color: '#2563eb' }} />
+        <span className="datepicker-display-value" style={{ fontSize: '0.85rem', fontWeight: 600, color: value ? '#0f172a' : '#64748b' }}>
           {formatFormattedDisplay(selectedDate)}
         </span>
+        {clearable && value && (
+          <div
+            onClick={handleClear}
+            title="Bersihkan Tanggal"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: '#f1f5f9',
+              color: '#64748b',
+              cursor: 'pointer',
+              marginLeft: '0.2rem'
+            }}
+          >
+            <X size={12} />
+          </div>
+        )}
       </div>
 
       {/* Popover Calendar */}
       {isOpen && (
-        <div className="datepicker-popover shadow-xl">
+        <div 
+          className="datepicker-popover shadow-xl"
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 6px)',
+            left: align === 'right' ? 'auto' : 0,
+            right: align === 'right' ? 0 : 'auto',
+            zIndex: 500
+          }}
+        >
           {/* Calendar Header */}
           <div className="datepicker-header">
             <button className="datepicker-nav-btn" onClick={handlePrevMonth}>
@@ -189,12 +230,12 @@ export default function DatePicker({ value, onChange, label, required }) {
             {Array.from({ length: daysInMonth }).map((_, idx) => {
               const day = idx + 1;
               const selected = isSelected(day);
-              const today = isToday(day);
+              const todayCell = isToday(day);
 
               return (
                 <button
                   key={`day-${day}`}
-                  className={`datepicker-day-cell ${selected ? 'selected' : ''} ${today ? 'today' : ''}`}
+                  className={`datepicker-day-cell ${selected ? 'selected' : ''} ${todayCell ? 'today' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
                     handleSelectDay(day);
@@ -211,9 +252,19 @@ export default function DatePicker({ value, onChange, label, required }) {
             <button className="quick-select-btn" onClick={handleQuickSelectToday}>
               Hari Ini
             </button>
-            <button className="quick-select-btn" onClick={handleQuickSelectTomorrow}>
-              Besok
-            </button>
+            {value && (
+              <button 
+                className="quick-select-btn" 
+                style={{ background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onChange('');
+                  setIsOpen(false);
+                }}
+              >
+                Reset Filter
+              </button>
+            )}
           </div>
         </div>
       )}

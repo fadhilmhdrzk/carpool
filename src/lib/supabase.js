@@ -1,12 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-anon-key';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
+export const isSupabaseConfigured = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
+if (!isSupabaseConfigured) {
+  console.warn(
     '⚠️ Supabase URL atau Anon Key belum diatur! ' +
-    'Silakan isi file .env dengan VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY.'
+    'Silakan buat file .env dan isi VITE_SUPABASE_URL serta VITE_SUPABASE_ANON_KEY jika ingin terhubung ke database Supabase.'
   );
 }
 

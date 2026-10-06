@@ -67,45 +67,83 @@ export default function App() {
   useEffect(() => {
     setIsPageLoading(true);
 
-    // Load data armada & trips dari Supabase (fallback ke localStorage)
+    // Load data armada & trips dari Supabase & localStorage (dengan penggabungan pintar)
     const loadInitialData = async () => {
-      const [dbVehicles, dbTrips] = await Promise.all([
-        fetchVehiclesFromSupabase(),
-        fetchTripsFromSupabase()
-      ]);
+      try {
+        const [dbVehicles, dbTrips] = await Promise.all([
+          fetchVehiclesFromSupabase(),
+          fetchTripsFromSupabase()
+        ]);
 
-      const loadedVehicles = (dbVehicles && dbVehicles.length > 0) ? dbVehicles : getStoredVehicles();
-      const loadedTrips = (dbTrips && dbTrips.length > 0) ? dbTrips : getStoredTrips();
+        const localVehicles = getStoredVehicles();
+        const localTrips = getStoredTrips();
 
-      // Sinkronisasi otomatis: Jika ada trip status 'Aktif', pastikan status kendaraan 'Terpakai'
-      const syncedVehicles = loadedVehicles.map(v => {
-        const activeTrip = loadedTrips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
-        if (activeTrip) {
-          return {
-            ...v,
-            status: 'Terpakai',
-            currentBorrower: activeTrip.borrowerName,
-            currentDepartment: activeTrip.department,
-            currentReturnTime: activeTrip.returnTime,
-          };
-        } else if (v.status === 'Terpakai' && !activeTrip) {
-          return {
-            ...v,
-            status: 'Tersedia',
-            currentBorrower: null,
-            currentDepartment: null,
-            currentReturnTime: null,
-          };
+        // Gabungkan DB Trips dan Local Trips agar data baru tidak pernah hilang:
+        let combinedTrips = [];
+        if (Array.isArray(dbTrips)) {
+          combinedTrips = [...dbTrips];
+          localTrips.forEach(localT => {
+            const existsInDb = combinedTrips.some(
+              dbT => String(dbT.id) === String(localT.id) || (dbT.ticketCode && dbT.ticketCode === localT.ticketCode)
+            );
+            if (!existsInDb) {
+              combinedTrips.push(localT);
+            }
+          });
+        } else {
+          combinedTrips = localTrips;
         }
-        return v;
-      });
 
-      setVehicles(syncedVehicles);
-      saveStoredVehicles(syncedVehicles);
-      setTrips(loadedTrips);
-      saveStoredTrips(loadedTrips);
+        // Base Vehicles (Lokal / DB)
+        let baseVehicles = (localVehicles && localVehicles.length > 0) ? localVehicles : (dbVehicles || INITIAL_VEHICLES);
+        baseVehicles = baseVehicles.slice(0, 8);
+
+        // Sinkronisasi Dua Arah Antara Vehicles & Trips:
+        // - Jika ada trip status 'Aktif' untuk vehicleId -> status WAJIB 'Terpakai'
+        // - Jika TIDAK ADA trip status 'Aktif' & bukan 'Perawatan' -> status WAJIB 'Tersedia'
+        const syncedVehicles = baseVehicles.map(v => {
+          if (v.status === 'Perawatan') return v;
+
+          const activeTrip = combinedTrips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+          if (activeTrip) {
+            return {
+              ...v,
+              status: 'Terpakai',
+              currentBorrower: activeTrip.borrowerName,
+              currentDepartment: activeTrip.department,
+              currentReturnTime: activeTrip.returnTime,
+            };
+          } else {
+            return {
+              ...v,
+              status: 'Tersedia',
+              currentBorrower: null,
+              currentDepartment: null,
+              currentReturnTime: null,
+            };
+          }
+        });
+
+        setVehicles(syncedVehicles);
+        saveStoredVehicles(syncedVehicles);
+        setTrips(combinedTrips);
+        saveStoredTrips(combinedTrips);
+      } catch (err) {
+        console.error('Error in loadInitialData:', err);
+      }
     };
     loadInitialData();
+
+    // Event listener untuk sinkronisasi otomatis antar tab browser (Real-time Sync)
+    const handleStorageSync = (e) => {
+      if (e.key === 'bank_carpool_vehicles_v6' || e.key === 'bank_carpool_trips_v6') {
+        const freshVehicles = getStoredVehicles();
+        const freshTrips = getStoredTrips();
+        setVehicles(freshVehicles);
+        setTrips(freshTrips);
+      }
+    };
+    window.addEventListener('storage', handleStorageSync);
 
     // Cek Supabase auth session saat mount
     const initAuth = async () => {
@@ -207,6 +245,7 @@ export default function App() {
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('storage', handleStorageSync);
     };
   }, []);
 
@@ -278,24 +317,14 @@ export default function App() {
   };
 
   // Create new Trip / Booking (Used by both Admin & Guest)
-  const handleAddTrip = async (newTrip) => {
-    // 1. Simpan ke Supabase database (trips & vehicle status)
-    const dbTrip = await insertTripToSupabase(newTrip);
-    await updateVehicleInSupabase(newTrip.vehicleId, {
-      status: 'Terpakai',
-      currentBorrower: newTrip.borrowerName,
-      currentDepartment: newTrip.department,
-      currentReturnTime: newTrip.returnTime,
-    });
-    const tripToSave = dbTrip || newTrip;
-
-    // 2. Update state lokal & localStorage
-    const updatedTrips = [tripToSave, ...trips];
+  const handleAddTrip = (newTrip) => {
+    // 1. Update state lokal & localStorage LANGSUNG INSTAN (< 10ms) agar UI langsung berubah tanpa perlu refresh
+    const updatedTrips = [newTrip, ...trips.filter(t => t.id !== newTrip.id && t.ticketCode !== newTrip.ticketCode)];
     setTrips(updatedTrips);
     saveStoredTrips(updatedTrips);
 
     const updatedVehicles = vehicles.map(v => {
-      if (v.id === newTrip.vehicleId) {
+      if (String(v.id) === String(newTrip.vehicleId)) {
         return {
           ...v,
           status: 'Terpakai',
@@ -310,21 +339,35 @@ export default function App() {
     setVehicles(updatedVehicles);
     saveStoredVehicles(updatedVehicles);
     showToast(`Pengajuan ${newTrip.vehicleName} atas nama ${newTrip.borrowerName} berhasil dikirim!`, 'success');
+
+    // 2. Simpan ke Supabase database secara asynchronous di background
+    insertTripToSupabase(newTrip).then(dbTrip => {
+      if (dbTrip && dbTrip.id) {
+        setTrips(prev => prev.map(t => (t.ticketCode === dbTrip.ticketCode ? dbTrip : t)));
+      }
+    }).catch(err => console.warn('Supabase trip insert error:', err));
+
+    updateVehicleInSupabase(newTrip.vehicleId, {
+      status: 'Terpakai',
+      currentBorrower: newTrip.borrowerName,
+      currentDepartment: newTrip.department,
+      currentReturnTime: newTrip.returnTime,
+    }).catch(err => console.warn('Supabase vehicle update error:', err));
   };
 
   // Admin: Update vehicle status manually
   const handleUpdateVehicleStatus = async (vehicleId, newStatus) => {
     // 1. Update ke Supabase database
-    await updateVehicleInSupabase(vehicleId, {
+    updateVehicleInSupabase(vehicleId, {
       status: newStatus,
       currentBorrower: newStatus === 'Tersedia' ? null : undefined,
       currentDepartment: newStatus === 'Tersedia' ? null : undefined,
       currentReturnTime: newStatus === 'Tersedia' ? null : undefined,
-    });
+    }).catch(err => console.warn('Supabase vehicle update error:', err));
 
     // 2. Update state lokal & localStorage
     const updatedVehicles = vehicles.map(v => {
-      if (v.id === vehicleId) {
+      if (String(v.id) === String(vehicleId)) {
         return {
           ...v,
           status: newStatus,
@@ -340,48 +383,89 @@ export default function App() {
     saveStoredVehicles(updatedVehicles);
   };
 
-  // Admin: Finish active trip for vehicle (with optional rating)
-  const handleFinishTrip = async (tripId, vehicleId, rating = null, ratingDescription = '') => {
+  // Admin: Finish active trip for vehicle (with optional rating, driverName, and plateNumber)
+  const handleFinishTrip = async (tripId, vehicleId, rating = null, ratingDescription = '', driverName = '', plateNumber = '') => {
     const actualReturnTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Update ke Supabase database (trips & vehicle status)
-    await updateTripInSupabase(tripId, vehicleId, {
+    // 1. Update ke Supabase database (async non-blocking)
+    updateTripInSupabase(tripId, vehicleId, {
       status: 'Selesai',
       rating,
       ratingDescription,
-      actualReturnTime
-    });
+      actualReturnTime,
+      driverName,
+      plateNumber
+    }).catch(err => console.warn('Supabase trip update error:', err));
 
-    await updateVehicleInSupabase(vehicleId, {
+    updateVehicleInSupabase(vehicleId, {
       status: 'Tersedia',
       currentBorrower: null,
       currentDepartment: null,
       currentReturnTime: null,
-    });
+      ...(plateNumber && { plateNumber })
+    }).catch(err => console.warn('Supabase vehicle update error:', err));
 
     // 2. Update state lokal & localStorage
+    let tripFound = false;
     const updatedTrips = trips.map(t => {
-      if ((tripId && t.id === tripId) || (vehicleId && t.vehicleId === vehicleId && t.status === 'Aktif')) {
+      const isMatchById = tripId && String(t.id) === String(tripId);
+      const isMatchByVehicleAndActive = vehicleId && String(t.vehicleId) === String(vehicleId) && t.status === 'Aktif';
+
+      if (isMatchById || isMatchByVehicleAndActive) {
+        tripFound = true;
         return {
           ...t,
           status: 'Selesai',
           actualReturnTime,
+          driverName: driverName || t.driverName || 'Driver Operasional',
+          plateNumber: plateNumber || t.plateNumber || 'D 1185 ALT',
           ...(rating && { rating, ratingDescription })
         };
       }
       return t;
     });
-    setTrips(updatedTrips);
-    saveStoredTrips(updatedTrips);
+
+    // Jika tidak ada trip aktif yang cocok di array trips (misal data bawaan mock), buatkan trip 'Selesai' baru agar 100% MUNCUL di Histori!
+    let finalTrips = updatedTrips;
+    if (!tripFound && vehicleId) {
+      const targetVehicle = vehicles.find(v => String(v.id) === String(vehicleId));
+      const todayStr = new Date().toISOString().split('T')[0];
+      const fallbackTrip = {
+        id: `trip-completed-${Date.now()}`,
+        ticketCode: `CP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        borrowerName: targetVehicle?.currentBorrower || 'Karyawan Dinas',
+        department: targetVehicle?.currentDepartment || 'Operasional',
+        companions: [],
+        vehicleId: vehicleId,
+        vehicleName: targetVehicle?.name || 'Mobil Dinas',
+        plateNumber: plateNumber || targetVehicle?.plateNumber || 'D 1185 ALT',
+        date: todayStr,
+        departureTime: '08:00',
+        returnTime: targetVehicle?.currentReturnTime || '17:00',
+        actualReturnTime,
+        destination: 'Perjalanan Dinas Operasional Bank',
+        status: 'Selesai',
+        driverName: driverName || 'Driver Operasional',
+        rating: rating || null,
+        ratingDescription: ratingDescription || null,
+        submittedBy: 'Self-Service Karyawan',
+        createdAt: new Date().toISOString(),
+      };
+      finalTrips = [fallbackTrip, ...updatedTrips];
+    }
+
+    setTrips(finalTrips);
+    saveStoredTrips(finalTrips);
 
     const updatedVehicles = vehicles.map(v => {
-      if (v.id === vehicleId) {
+      if (String(v.id) === String(vehicleId)) {
         return {
           ...v,
           status: 'Tersedia',
           currentBorrower: null,
           currentDepartment: null,
           currentReturnTime: null,
+          ...(plateNumber && { plateNumber })
         };
       }
       return v;
@@ -400,11 +484,11 @@ export default function App() {
 
     // 2. Update state lokal & localStorage
     const updatedVehicles = vehicles.map(v => {
-      if (v.id === vehicleId) {
+      if (String(v.id) === String(vehicleId)) {
         return {
           ...v,
           plateNumber: plateNumber.trim().toUpperCase(),
-          driverName: driverName.trim(),
+          driverName: driverName ? driverName.trim() : v.driverName,
         };
       }
       return v;
@@ -489,6 +573,7 @@ export default function App() {
             ) : (
               <Home
                 vehicles={vehicles}
+                trips={trips}
                 onSubmitRequest={handleAddTrip}
                 showToast={showToast}
               />

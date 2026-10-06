@@ -1,11 +1,21 @@
-import { useState } from 'react';
-import { Star, X, Send, MessageSquare } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, X, Send, MessageSquare, UserCheck, Car } from 'lucide-react';
+import { AVAILABLE_DRIVERS, AVAILABLE_PLATES } from '../data/mockData';
 
 export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }) {
+  const [selectedDriver, setSelectedDriver] = useState('');
+  const [selectedPlate, setSelectedPlate] = useState('');
   const [selectedRating, setSelectedRating] = useState(null);
   const [hoveredRating, setHoveredRating] = useState(null);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDriver('');
+      setSelectedPlate('');
+    }
+  }, [isOpen]);
 
   if (!isOpen || !vehicle) return null;
 
@@ -19,13 +29,15 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
 
   const getActiveOption = () => ratingOptions.find(r => r.value === activeRating);
 
-  const canSubmit = selectedRating && description.trim().length > 0;
+  const canSubmit = selectedDriver && selectedPlate && selectedRating && description.trim().length > 0;
 
   const handleSubmit = () => {
     if (!canSubmit) return;
     setIsSubmitting(true);
     setTimeout(() => {
-      onSubmitRating(selectedRating, description.trim());
+      onSubmitRating(selectedRating, description.trim(), selectedDriver, selectedPlate);
+      setSelectedDriver('');
+      setSelectedPlate('');
       setSelectedRating(null);
       setHoveredRating(null);
       setDescription('');
@@ -34,6 +46,8 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
   };
 
   const handleClose = () => {
+    setSelectedDriver('');
+    setSelectedPlate('');
     setSelectedRating(null);
     setHoveredRating(null);
     setDescription('');
@@ -147,23 +161,94 @@ export default function RatingModal({ isOpen, vehicle, onSubmitRating, onClose }
               🚗
             </div>
             <div>
-              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem' }}>
+              <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>
                 {vehicle.name}
               </div>
-              <div style={{
-                fontFamily: 'monospace',
-                fontSize: '0.75rem',
-                background: '#0f172a',
-                color: '#fbbf24',
-                padding: '0.1rem 0.4rem',
-                borderRadius: '4px',
-                fontWeight: 700,
-                display: 'inline-block',
-                marginTop: '0.2rem'
-              }}>
-                {vehicle.plateNumber}
-              </div>
             </div>
+          </div>
+
+          {/* Dropdown Driver yang bertugas */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              color: '#475569',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              marginBottom: '0.4rem'
+            }}>
+              <UserCheck size={16} style={{ color: '#2563eb' }} />
+              Driver Yang Bertugas Membawa Dinas
+              <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>*wajib</span>
+            </label>
+            <select
+              value={selectedDriver}
+              onChange={(e) => setSelectedDriver(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.7rem 0.85rem',
+                borderRadius: '10px',
+                border: `1.5px solid ${selectedDriver ? '#2563eb' : '#cbd5e1'}`,
+                background: '#ffffff',
+                color: selectedDriver ? '#0f172a' : '#64748b',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                outline: 'none',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}
+            >
+              <option value="" disabled>-- Pilih Nama Driver --</option>
+              {AVAILABLE_DRIVERS.map(driver => (
+                <option key={driver} value={driver} style={{ color: '#0f172a' }}>
+                  {driver}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Dropdown Nomor Plat Mobil */}
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{
+              fontSize: '0.825rem',
+              fontWeight: 700,
+              color: '#475569',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              marginBottom: '0.4rem'
+            }}>
+              <Car size={16} style={{ color: '#2563eb' }} />
+              Nomor Plat Armada Yang Digunakan
+              <span style={{ color: '#ef4444', fontSize: '0.75rem' }}>*wajib</span>
+            </label>
+            <select
+              value={selectedPlate}
+              onChange={(e) => setSelectedPlate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.7rem 0.85rem',
+                borderRadius: '10px',
+                border: `1.5px solid ${selectedPlate ? '#2563eb' : '#cbd5e1'}`,
+                background: '#ffffff',
+                color: selectedPlate ? '#0f172a' : '#64748b',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                outline: 'none',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}
+            >
+              <option value="" disabled>-- Pilih Nomor Plat Mobil --</option>
+              {AVAILABLE_PLATES.map(plate => (
+                <option key={plate} value={plate} style={{ color: '#0f172a' }}>
+                  {plate}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Rating Options */}

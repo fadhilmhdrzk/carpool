@@ -16,6 +16,7 @@ export const mapDbTripToFrontend = (dbTrip) => ({
   actualReturnTime: dbTrip.actual_return_time,
   destination: dbTrip.destination,
   status: dbTrip.status,
+  driverName: dbTrip.driver_name || '',
   rating: dbTrip.rating,
   ratingDescription: dbTrip.rating_description,
   submittedBy: dbTrip.submitted_by,
@@ -31,6 +32,7 @@ export const mapFrontendTripToDb = (trip) => ({
   vehicle_id: trip.vehicleId,
   vehicle_name: trip.vehicleName,
   plate_number: trip.plateNumber,
+  driver_name: trip.driverName || null,
   date: trip.date,
   departure_time: trip.departureTime,
   return_time: trip.returnTime,
@@ -95,6 +97,8 @@ export const updateTripInSupabase = async (tripId, vehicleId, updates) => {
     if (updates.rating !== undefined) dbUpdates.rating = updates.rating;
     if (updates.ratingDescription !== undefined) dbUpdates.rating_description = updates.ratingDescription;
     if (updates.actualReturnTime !== undefined) dbUpdates.actual_return_time = updates.actualReturnTime;
+    if (updates.driverName !== undefined) dbUpdates.driver_name = updates.driverName;
+    if (updates.plateNumber !== undefined) dbUpdates.plate_number = updates.plateNumber;
 
     let query = supabase.from('trips').update(dbUpdates);
     if (tripId) {

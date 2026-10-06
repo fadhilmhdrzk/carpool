@@ -1,4 +1,4 @@
-import { X, UserCheck, Car, Star } from 'lucide-react';
+import { X, Car, Star } from 'lucide-react';
 
 export default function TripDetailModal({ trip, onClose }) {
   if (!trip) return null;
@@ -163,17 +163,7 @@ export default function TripDetailModal({ trip, onClose }) {
             </div>
           )}
 
-          {/* Submitted By */}
-          {trip.submittedBy && (
-            <div style={{ marginTop: '0.85rem', paddingTop: '0.65rem', borderTop: '1px dashed #f1f5f9' }}>
-              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
-                Pengaju / Sumber Input
-              </label>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: '0.825rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <UserCheck size={14} /> {trip.submittedBy}
-              </p>
-            </div>
-          )}
+
 
           {/* Action Footer */}
           <div style={{ marginTop: '1.75rem', display: 'flex', justifyContent: 'flex-end' }}>

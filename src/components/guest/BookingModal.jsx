@@ -28,6 +28,7 @@ export default function BookingFormModal({
   showToast 
 }) {
   const [borrowerName, setBorrowerName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [departureTime, setDepartureTime] = useState('08:00');
   const [returnTime, setReturnTime] = useState('17:00');
@@ -38,6 +39,30 @@ export default function BookingFormModal({
 
   // Validation step state
   const [isConfirming, setIsConfirming] = useState(false);
+
+  // Flatten all employees across departments for autocomplete search
+  const allEmployees = BANK_DEPARTMENTS.flatMap(dept => 
+    dept.employees.map(emp => ({
+      ...emp,
+      deptId: dept.id,
+      deptName: dept.name,
+      deptCode: dept.code
+    }))
+  );
+
+  const matchingEmployees = borrowerName.trim().length > 0
+    ? allEmployees.filter(emp => 
+        emp.name.toLowerCase().includes(borrowerName.toLowerCase().trim()) ||
+        emp.position.toLowerCase().includes(borrowerName.toLowerCase().trim())
+      )
+    : [];
+
+  const handleSelectEmployee = (emp) => {
+    setBorrowerName(emp.name);
+    setSelectedDeptId(emp.deptId);
+    setSelectedCompanions([]);
+    setShowSuggestions(false);
+  };
 
   // Update selected vehicle when modal opens with initialVehicle
   useEffect(() => {
@@ -78,9 +103,9 @@ export default function BookingFormModal({
       return;
     }
 
-    const vehicleObj = vehicles.find(v => v.id === selectedVehicleId) || activeVehicle;
-    if (!vehicleObj || vehicleObj.status !== 'Tersedia') {
-      if (showToast) showToast('Mobil yang dipilih tidak tersedia saat ini!', 'error');
+    const vehicleObj = vehicles.find(v => String(v.id) === String(selectedVehicleId)) || activeVehicle;
+    if (!vehicleObj || vehicleObj.status === 'Perawatan') {
+      if (showToast) showToast('Mobil yang dipilih sedang dalam perawatan!', 'error');
       return;
     }
 
@@ -89,7 +114,7 @@ export default function BookingFormModal({
   };
 
   const handleFinalSubmit = () => {
-    const vehicleObj = vehicles.find(v => v.id === selectedVehicleId) || activeVehicle;
+    const vehicleObj = vehicles.find(v => String(v.id) === String(selectedVehicleId)) || activeVehicle;
     const ticketCode = `CP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newTrip = {
@@ -276,22 +301,10 @@ export default function BookingFormModal({
 
               <div>
                 <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
-                  Mobil Dinas & Nomor Plat
+                  Mobil Dinas
                 </label>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', marginTop: '2px' }}>
                   {activeVehicle?.name} 
-                  <span style={{ fontFamily: 'monospace', backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>
-                    {activeVehicle?.plateNumber}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase' }}>
-                  Driver Operasional
-                </label>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#0f172a', marginTop: '2px' }}>
-                  {activeVehicle?.driverName || 'Driver Operasional'}
                 </div>
               </div>
 
@@ -385,19 +398,89 @@ export default function BookingFormModal({
           <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
             <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               
-              {/* Nama Pengisi */}
-              <div className="form-group">
+              {/* Nama Pengisi / Pegawai (Dengan Autocomplete Rekomendasi Nama) */}
+              <div className="form-group" style={{ position: 'relative' }}>
                 <label className="form-label">
-                  <User size={16} /> Nama Pengisi / Penanggung Jawab
+                  <User size={16} /> Nama User / Pegawai
                 </label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Masukkan nama lengkap Anda"
-                  value={borrowerName}
-                  onChange={(e) => setBorrowerName(e.target.value)}
-                  required
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Ketik nama pegawai (contoh: Aulia, Fahmi, Doni...)"
+                    value={borrowerName}
+                    onChange={(e) => {
+                      setBorrowerName(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    required
+                  />
+
+                  {/* Dropdown Rekomendasi Nama Pegawai */}
+                  {showSuggestions && matchingEmployees.length > 0 && (
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: '#ffffff',
+                        borderRadius: '10px',
+                        border: '1.5px solid #2563eb',
+                        boxShadow: '0 12px 28px -5px rgba(37, 99, 235, 0.25)',
+                        zIndex: 100,
+                        maxHeight: '230px',
+                        overflowY: 'auto',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <div style={{ padding: '6px 12px', fontSize: '0.7rem', color: '#1e40af', fontWeight: 800, backgroundColor: '#eff6ff', borderBottom: '1px solid #dbeafe', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        🔍 Rekomendasi Nama Pegawai Resmi ({matchingEmployees.length} Ditemukan)
+                      </div>
+                      {matchingEmployees.slice(0, 8).map((emp) => (
+                        <div
+                          key={emp.id}
+                          onMouseDown={() => handleSelectEmployee(emp)}
+                          style={{
+                            padding: '0.65rem 0.95rem',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#ffffff'}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.875rem', fontWeight: 700, color: '#0f172a' }}>
+                              {emp.name}
+                            </div>
+                          </div>
+                          <span 
+                            style={{ 
+                              fontSize: '0.7rem', 
+                              backgroundColor: '#dbeafe', 
+                              color: '#1e40af', 
+                              padding: '2px 8px', 
+                              borderRadius: '4px', 
+                              fontWeight: 700,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {emp.deptCode}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: '0.725rem', color: '#64748b', marginTop: '0.35rem', fontWeight: 500 }}>
+                  💡 <em>Ketik nama pegawai Anda untuk menampilkan pilihan nama lengkap resmi secara otomatis.</em>
+                </div>
               </div>
 
               {/* Kendaraan Dinas Terpilih (LOCKED) */}
@@ -420,21 +503,7 @@ export default function BookingFormModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span 
-                      style={{ 
-                        backgroundColor: '#1e40af', 
-                        color: '#ffffff', 
-                        padding: '0.25rem 0.6rem', 
-                        borderRadius: '6px', 
-                        fontSize: '0.8rem',
-                        fontFamily: 'monospace',
-                        fontWeight: 700,
-                        letterSpacing: '0.05em' 
-                      }}
-                    >
-                      {activeVehicle?.plateNumber || 'Plat N/A'}
-                    </span>
-                    <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af' }}>
                       {activeVehicle?.name || 'Mobil Dinas'}
                     </span>
                   </div>
