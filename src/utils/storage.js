@@ -1,7 +1,7 @@
 import { INITIAL_VEHICLES, INITIAL_TRIPS } from '../data/mockData';
 
-const VEHICLES_KEY = 'bank_carpool_vehicles_v6';
-const TRIPS_KEY = 'bank_carpool_trips_v6';
+const VEHICLES_KEY = 'bank_carpool_vehicles_v8';
+const TRIPS_KEY = 'bank_carpool_trips_v8';
 
 export const getStoredVehicles = () => {
   try {
