@@ -78,24 +78,13 @@ export default function App() {
         const localVehicles = getStoredVehicles();
         const localTrips = getStoredTrips();
 
-        // Gabungkan DB Trips dan Local Trips agar data baru tidak pernah hilang:
-        let combinedTrips = [];
-        if (Array.isArray(dbTrips)) {
-          combinedTrips = [...dbTrips];
-          localTrips.forEach(localT => {
-            const existsInDb = combinedTrips.some(
-              dbT => String(dbT.id) === String(localT.id) || (dbT.ticketCode && dbT.ticketCode === localT.ticketCode)
-            );
-            if (!existsInDb) {
-              combinedTrips.push(localT);
-            }
-          });
-        } else {
-          combinedTrips = localTrips;
-        }
+        // Utamakan Supabase DB sebagai Single Source of Truth jika terhubung:
+        const finalTrips = Array.isArray(dbTrips) ? dbTrips : localTrips;
 
-        // Base Vehicles (Lokal / DB)
-        let baseVehicles = (localVehicles && localVehicles.length > 0) ? localVehicles : (dbVehicles || INITIAL_VEHICLES);
+        // Base Vehicles (Utamakan DB jika ada, fallback ke Local / Default)
+        let baseVehicles = (Array.isArray(dbVehicles) && dbVehicles.length > 0)
+          ? dbVehicles 
+          : ((localVehicles && localVehicles.length > 0) ? localVehicles : INITIAL_VEHICLES);
         baseVehicles = baseVehicles.slice(0, 8);
 
         // Sinkronisasi Dua Arah Antara Vehicles & Trips:
@@ -104,7 +93,7 @@ export default function App() {
         const syncedVehicles = baseVehicles.map(v => {
           if (v.status === 'Perawatan') return v;
 
-          const activeTrip = combinedTrips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+          const activeTrip = finalTrips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
           if (activeTrip) {
             return {
               ...v,
@@ -126,8 +115,8 @@ export default function App() {
 
         setVehicles(syncedVehicles);
         saveStoredVehicles(syncedVehicles);
-        setTrips(combinedTrips);
-        saveStoredTrips(combinedTrips);
+        setTrips(finalTrips);
+        saveStoredTrips(finalTrips);
       } catch (err) {
         console.error('Error in loadInitialData:', err);
       }
