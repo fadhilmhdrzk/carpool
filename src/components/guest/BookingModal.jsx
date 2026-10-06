@@ -119,20 +119,18 @@ export default function BookingFormModal({
 
     const newTrip = {
       id: `trip-${Date.now()}`,
-      ticketCode,
       borrowerName,
       department: currentDepartment ? currentDepartment.name : selectedDeptId,
       companions: selectedCompanions,
       vehicleId: vehicleObj.id,
       vehicleName: vehicleObj.name,
-      plateNumber: vehicleObj.plateNumber,
+      driverName: vehicleObj.driverName || 'Driver Operasional',
       date,
       departureTime,
       returnTime,
       destination,
       status: 'Aktif',
       createdAt: new Date().toISOString(),
-      submittedBy: `${borrowerName} (Self-Service Karyawan)`,
     };
 
     onSubmit(newTrip);

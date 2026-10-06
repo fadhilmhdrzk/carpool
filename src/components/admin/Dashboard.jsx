@@ -85,20 +85,18 @@ export default function AdminDashboardPage({
 
     const newTrip = {
       id: `trip-${Date.now()}`,
-      ticketCode: `CP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       borrowerName,
       department: currentDepartment ? currentDepartment.name : selectedDeptId,
       companions: selectedCompanions,
       vehicleId: vehicleObj.id,
       vehicleName: vehicleObj.name,
-      plateNumber: vehicleObj.plateNumber,
+      driverName: vehicleObj.driverName || 'Driver Operasional',
       date,
       departureTime,
       returnTime,
       destination,
       status: 'Aktif',
       createdAt: new Date().toISOString(),
-      submittedBy: 'Admin Fleet (Internal)',
     };
 
     onAddTrip(newTrip);

@@ -55,6 +55,13 @@ export default function TripDetailModal({ trip, onClose }) {
               <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{trip.vehicleName}</p>
             </div>
 
+            <div className="ticket-item">
+              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
+                Driver Operasional
+              </label>
+              <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{trip.driverName || 'Driver Operasional'}</p>
+            </div>
+
 
 
             <div className="ticket-item">
