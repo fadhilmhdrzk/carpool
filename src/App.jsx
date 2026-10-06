@@ -134,9 +134,9 @@ export default function App() {
     };
     loadInitialData();
 
-    // Event listener untuk sinkronisasi otomatis antar tab browser (Real-time Sync)
+    // Event listener untuk sinkronisasi otomatis antar tab browser (Real-time Tab Sync)
     const handleStorageSync = (e) => {
-      if (e.key === 'bank_carpool_vehicles_v6' || e.key === 'bank_carpool_trips_v6') {
+      if (!e.key || e.key.includes('bank_carpool')) {
         const freshVehicles = getStoredVehicles();
         const freshTrips = getStoredTrips();
         setVehicles(freshVehicles);
@@ -144,6 +144,27 @@ export default function App() {
       }
     };
     window.addEventListener('storage', handleStorageSync);
+
+    // Supabase Realtime Subscription + Interval Polling (Real-time Perangkat / Tab Sync)
+    let realtimeChannel = null;
+    try {
+      realtimeChannel = supabase
+        .channel('realtime_carpool_changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => {
+          loadInitialData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+          loadInitialData();
+        })
+        .subscribe();
+    } catch (realtimeErr) {
+      console.warn('Supabase realtime channel warning:', realtimeErr);
+    }
+
+    // Polling interval 5 detik untuk memastikan real-time sync tanpa refresh
+    const pollInterval = setInterval(() => {
+      loadInitialData();
+    }, 5000);
 
     // Cek Supabase auth session saat mount
     const initAuth = async () => {
@@ -244,6 +265,8 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => {
       subscription.unsubscribe();
+      if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+      clearInterval(pollInterval);
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('storage', handleStorageSync);
     };
