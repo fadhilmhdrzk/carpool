@@ -55,12 +55,7 @@ export default function TripDetailModal({ trip, onClose }) {
               <p style={{ margin: 0, fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>{trip.vehicleName}</p>
             </div>
 
-            <div className="ticket-item">
-              <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>
-                Nomor Plat
-              </label>
-              <p style={{ margin: 0, fontFamily: 'monospace', fontWeight: 800, color: '#b45309', fontSize: '0.95rem' }}>{trip.plateNumber}</p>
-            </div>
+
 
             <div className="ticket-item">
               <label style={{ fontSize: '0.725rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', display: 'block', marginBottom: '0.2rem' }}>

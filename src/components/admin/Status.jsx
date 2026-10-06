@@ -524,20 +524,20 @@ export default function VehicleStatusPage({
               {confirmModal.actionType === 'finishDinas' && (
                 <>
                   Apakah Anda yakin ingin menyelesaikan tugas dinas untuk{' '}
-                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name} ({confirmModal.vehicle.plateNumber})</strong>? Mobil akan kembali dalam status <strong style={{ color: '#047857' }}>TERSEDIA</strong> dan tercatat di <strong>Riwayat Perjalanan</strong>.
+                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name}</strong>? Mobil akan kembali dalam status <strong style={{ color: '#047857' }}>TERSEDIA</strong> dan tercatat di <strong>Riwayat Perjalanan</strong>.
                 </>
               )}
               {confirmModal.actionType === 'setService' && (
                 <>
                   Apakah Anda yakin ingin mengubah status mobil{' '}
-                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name} ({confirmModal.vehicle.plateNumber})</strong> menjadi{' '}
+                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name}</strong> menjadi{' '}
                   <strong style={{ color: '#b45309' }}>PERAWATAN (SERVICE)</strong>?
                 </>
               )}
               {confirmModal.actionType === 'finishService' && (
                 <>
                   Apakah Anda yakin perawatan/service untuk mobil{' '}
-                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name} ({confirmModal.vehicle.plateNumber})</strong> telah selesai? Status mobil akan kembali menjadi <strong style={{ color: '#047857' }}>TERSEDIA</strong>.
+                  <strong style={{ color: '#0f172a' }}>{confirmModal.vehicle.name}</strong> telah selesai? Status mobil akan kembali menjadi <strong style={{ color: '#047857' }}>TERSEDIA</strong>.
                 </>
               )}
             </div>
