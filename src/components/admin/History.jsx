@@ -72,13 +72,11 @@ export default function TripHistoryPage({
     try {
       const exportData = tripsToExport.map((t, index) => ({
         'No': index + 1,
-        'Kode Tiket': t.ticketCode || '-',
         'Tanggal Perjalanan': t.date,
         'Nama Pemohon': t.borrowerName,
         'Unit / Departemen': t.department,
         'Rekan Pendamping': Array.isArray(t.companions) && t.companions.length > 0 ? t.companions.join(', ') : 'Tanpa Pendamping',
         'Armada Mobil': t.vehicleName,
-        'Nomor Plat': t.plateNumber,
         'Driver Operasional': t.driverName || 'Driver Operasional',
         'Jam Keberangkatan': t.departureTime,
         'Est. Jam Kembali': t.returnTime,
@@ -86,8 +84,7 @@ export default function TripHistoryPage({
         'Tujuan / Keperluan': t.destination,
         'Status Perjalanan': t.status,
         'Rating Layanan': t.rating ? `${t.rating} Bintang (${t.rating === 1 ? 'Buruk' : t.rating === 3 ? 'Baik' : 'Sangat Baik'})` : '-',
-        'Catatan Rating': t.ratingDescription || '-',
-        'Pengaju / Sumber': t.submittedBy || '-'
+        'Catatan Rating': t.ratingDescription || '-'
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);

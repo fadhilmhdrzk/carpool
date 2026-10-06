@@ -3,13 +3,11 @@ import { supabase } from './supabase';
 // Mapping dari database Supabase (snake_case) ke format Frontend (camelCase)
 export const mapDbTripToFrontend = (dbTrip) => ({
   id: dbTrip.id,
-  ticketCode: dbTrip.ticket_code,
   borrowerName: dbTrip.borrower_name,
   department: dbTrip.department,
   companions: dbTrip.companions || [],
   vehicleId: dbTrip.vehicle_id,
   vehicleName: dbTrip.vehicle_name,
-  plateNumber: dbTrip.plate_number,
   date: dbTrip.date,
   departureTime: dbTrip.departure_time,
   returnTime: dbTrip.return_time,
@@ -19,19 +17,16 @@ export const mapDbTripToFrontend = (dbTrip) => ({
   driverName: dbTrip.driver_name || '',
   rating: dbTrip.rating,
   ratingDescription: dbTrip.rating_description,
-  submittedBy: dbTrip.submitted_by,
   createdAt: dbTrip.created_at,
 });
 
 // Mapping dari format Frontend (camelCase) ke database Supabase (snake_case)
 export const mapFrontendTripToDb = (trip) => ({
-  ticket_code: trip.ticketCode || `CP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
   borrower_name: trip.borrowerName,
   department: trip.department,
   companions: trip.companions || [],
   vehicle_id: trip.vehicleId,
   vehicle_name: trip.vehicleName,
-  plate_number: trip.plateNumber,
   driver_name: trip.driverName || null,
   date: trip.date,
   departure_time: trip.departureTime,
@@ -41,7 +36,6 @@ export const mapFrontendTripToDb = (trip) => ({
   status: trip.status || 'Aktif',
   rating: trip.rating || null,
   rating_description: trip.ratingDescription || null,
-  submitted_by: trip.submittedBy || 'Self-Service Karyawan',
 });
 
 // Fetch semua data trips dari tabel Supabase

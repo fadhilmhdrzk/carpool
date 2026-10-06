@@ -192,7 +192,7 @@ export default function DatePicker({
             top: 'calc(100% + 6px)',
             left: align === 'right' ? 'auto' : 0,
             right: align === 'right' ? 0 : 'auto',
-            zIndex: 500
+            zIndex: 9999
           }}
         >
           {/* Calendar Header */}
