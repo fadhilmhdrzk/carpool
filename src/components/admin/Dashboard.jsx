@@ -37,13 +37,13 @@ export default function AdminDashboardPage({
   // Compute Real-time Statistics
   const totalVehicles = vehicles.length;
   const availableCount = vehicles.filter(v => {
-    const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
-    const effStatus = activeTrip ? 'Terpakai' : v.status;
+    const activeTrip = trips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+    const effStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (v.status === 'Terpakai' && v.currentBorrower) ? 'Terpakai' : 'Tersedia');
     return effStatus === 'Tersedia';
   }).length;
   const inUseCount = vehicles.filter(v => {
-    const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
-    const effStatus = activeTrip ? 'Terpakai' : v.status;
+    const activeTrip = trips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+    const effStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (v.status === 'Terpakai' && v.currentBorrower) ? 'Terpakai' : 'Tersedia');
     return effStatus === 'Terpakai';
   }).length;
   const maintenanceCount = vehicles.filter(v => v.status === 'Perawatan').length;
@@ -90,6 +90,7 @@ export default function AdminDashboardPage({
       companions: selectedCompanions,
       vehicleId: vehicleObj.id,
       vehicleName: vehicleObj.name,
+      plateNumber: vehicleObj.plateNumber || '',
       driverName: vehicleObj.driverName || 'Driver Operasional',
       date,
       departureTime,
@@ -175,11 +176,11 @@ export default function AdminDashboardPage({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {vehicles.slice(0, 5).map(v => {
-              const activeTrip = trips.find(t => t.vehicleId === v.id && t.status === 'Aktif');
-              const effectiveStatus = activeTrip ? 'Terpakai' : v.status;
-              const effectiveBorrower = activeTrip ? activeTrip.borrowerName : v.currentBorrower;
-              const effectiveDepartment = activeTrip ? activeTrip.department : v.currentDepartment;
-              const effectiveReturnTime = activeTrip ? activeTrip.returnTime : v.currentReturnTime;
+              const activeTrip = trips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
+              const effectiveStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (v.status === 'Terpakai' && v.currentBorrower) ? 'Terpakai' : 'Tersedia');
+              const effectiveBorrower = activeTrip ? activeTrip.borrowerName : (effectiveStatus === 'Terpakai' ? v.currentBorrower : null);
+              const effectiveDepartment = activeTrip ? activeTrip.department : (effectiveStatus === 'Terpakai' ? v.currentDepartment : null);
+              const effectiveReturnTime = activeTrip ? activeTrip.returnTime : (effectiveStatus === 'Terpakai' ? v.currentReturnTime : null);
 
               return (
                 <div 

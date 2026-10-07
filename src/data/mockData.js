@@ -22,6 +22,30 @@ export const AVAILABLE_PLATES = [
   "D 1210 ALT",
 ];
 
+export const VEHICLE_PLATE_MAP = {
+  'v-01': 'D 1185 ALT',
+  'v-02': 'D 1186 ALT',
+  'v-03': 'D 1187 ALT',
+  'v-04': 'D 1189 ALT',
+  'v-05': 'D 1201 ALT',
+  'v-06': 'D 1204 ALT',
+  'v-07': 'D 1209 ALT',
+  'v-08': 'D 1210 ALT',
+};
+
+export const getPlateNumber = (vehicleId, vehicleName) => {
+  if (vehicleId && VEHICLE_PLATE_MAP[vehicleId]) return VEHICLE_PLATE_MAP[vehicleId];
+  if (vehicleName) {
+    const digits = vehicleName.replace(/[^0-9]/g, '');
+    if (digits) {
+      const num = parseInt(digits, 10);
+      const key = num < 10 ? `v-0${num}` : `v-${num}`;
+      if (VEHICLE_PLATE_MAP[key]) return VEHICLE_PLATE_MAP[key];
+    }
+  }
+  return '-';
+};
+
 export const INITIAL_VEHICLES = [
   {
     id: "v-01",

@@ -92,13 +92,17 @@ export const updateTripInSupabase = async (tripId, vehicleId, updates) => {
     if (updates.ratingDescription !== undefined) dbUpdates.rating_description = updates.ratingDescription;
     if (updates.actualReturnTime !== undefined) dbUpdates.actual_return_time = updates.actualReturnTime;
     if (updates.driverName !== undefined) dbUpdates.driver_name = updates.driverName;
-    if (updates.plateNumber !== undefined) dbUpdates.plate_number = updates.plateNumber;
 
     let query = supabase.from('trips').update(dbUpdates);
-    if (tripId) {
-      query = query.eq('id', tripId);
+    const isNumericId = tripId && !isNaN(Number(tripId)) && typeof Number(tripId) === 'number';
+
+    if (isNumericId) {
+      query = query.eq('id', Number(tripId));
     } else if (vehicleId) {
-      query = query.eq('vehicle_id', vehicleId).eq('status', 'Aktif');
+      query = query.eq('vehicle_id', String(vehicleId)).eq('status', 'Aktif');
+    } else {
+      console.warn('Cannot target trip in Supabase: no numeric tripId or vehicleId');
+      return null;
     }
 
     const { data, error } = await query.select();

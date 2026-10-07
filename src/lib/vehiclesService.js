@@ -4,7 +4,6 @@ import { supabase } from './supabase';
 export const mapDbVehicleToFrontend = (v) => ({
   id: v.id,
   name: v.name,
-  plateNumber: v.plate_number,
   driverName: v.driver_name,
   status: v.status,
   currentReturnTime: v.current_return_time,
@@ -16,7 +15,6 @@ export const mapDbVehicleToFrontend = (v) => ({
 export const mapFrontendVehicleToDb = (v) => ({
   id: v.id,
   name: v.name,
-  plate_number: v.plateNumber,
   driver_name: v.driverName,
   status: v.status,
   current_return_time: v.currentReturnTime || null,
@@ -48,7 +46,6 @@ export const updateVehicleInSupabase = async (vehicleId, updates) => {
   try {
     const dbPayload = {};
     if (updates.status !== undefined) dbPayload.status = updates.status;
-    if (updates.plateNumber !== undefined) dbPayload.plate_number = updates.plateNumber;
     if (updates.driverName !== undefined) dbPayload.driver_name = updates.driverName;
     if (updates.name !== undefined) dbPayload.name = updates.name;
     if (updates.currentBorrower !== undefined) dbPayload.current_borrower = updates.currentBorrower;

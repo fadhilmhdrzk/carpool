@@ -11,12 +11,15 @@ import {
   Save,
   X,
   Car,
-  UserCheck
+  UserCheck,
+  History,
+  Users,
+  MessageSquare
 } from 'lucide-react';
 import ConfirmModal from '../ConfirmModal';
 import TicketModal from '../TicketModal';
 import RatingModal from '../RatingModal';
-import { AVAILABLE_DRIVERS } from '../../data/mockData';
+import { AVAILABLE_DRIVERS, getPlateNumber } from '../../data/mockData';
 
 export default function VehicleStatusPage({ 
   vehicles, 
@@ -52,6 +55,9 @@ export default function VehicleStatusPage({
     actionType: '' // 'finishDinas' | 'setService' | 'finishService'
   });
 
+  // Driver History Modal State
+  const [driverHistoryModal, setDriverHistoryModal] = useState(null);
+
   // Filtered Vehicles
   const filteredVehicles = vehicles.filter(v => {
     const matchesSearch = 
@@ -79,7 +85,7 @@ export default function VehicleStatusPage({
 
     if (actionType === 'finishDinas') {
       // Buka rating modal terlebih dahulu sebelum menyelesaikan dinas
-      const activeTrip = trips.find(t => t.vehicleId === vehicle.id && t.status === 'Aktif');
+      const activeTrip = trips.find(t => String(t.vehicleId) === String(vehicle.id) && t.status === 'Aktif');
       setRatingModal({
         isOpen: true,
         vehicle: vehicle,
@@ -207,10 +213,10 @@ export default function VehicleStatusPage({
             ) : (
               filteredVehicles.map((v, index) => {
                 const activeTrip = trips.find(t => String(t.vehicleId) === String(v.id) && t.status === 'Aktif');
-                const effectiveStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
-                const effectiveBorrower = activeTrip ? activeTrip.borrowerName : null;
-                const effectiveDepartment = activeTrip ? activeTrip.department : null;
-                const effectiveReturnTime = activeTrip ? activeTrip.returnTime : null;
+                const effectiveStatus = v.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (v.status === 'Terpakai' && v.currentBorrower) ? 'Terpakai' : 'Tersedia');
+                const effectiveBorrower = activeTrip ? activeTrip.borrowerName : (effectiveStatus === 'Terpakai' ? v.currentBorrower : null);
+                const effectiveDepartment = activeTrip ? activeTrip.department : (effectiveStatus === 'Terpakai' ? v.currentDepartment : null);
+                const effectiveReturnTime = activeTrip ? activeTrip.returnTime : (effectiveStatus === 'Terpakai' ? v.currentReturnTime : null);
 
                 return (
                   <tr key={v.id}>
@@ -409,6 +415,7 @@ export default function VehicleStatusPage({
                 <th>Total Perjalanan Selesai</th>
                 <th>Rata-Rata Rating Driver</th>
                 <th>Kategori Layanan</th>
+                <th>Riwayat Perjalanan</th>
               </tr>
             </thead>
             <tbody>
@@ -481,6 +488,27 @@ export default function VehicleStatusPage({
                       ) : (
                         <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>-</span>
                       )}
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => setDriverHistoryModal({ driverName, trips: driverTrips })}
+                        style={{
+                          padding: '0.35rem 0.65rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '6px',
+                          background: '#eff6ff',
+                          color: '#1d4ed8',
+                          fontWeight: 700,
+                          border: '1px solid #93c5fd',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          boxShadow: '0 1px 3px rgba(37, 99, 235, 0.12)'
+                        }}
+                      >
+                        <History size={13} /> Riwayat
+                      </button>
                     </td>
                   </tr>
                 );
@@ -670,6 +698,186 @@ export default function VehicleStatusPage({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Driver History Modal Pop-up */}
+      {driverHistoryModal && (
+        <div 
+          className="modal-overlay"
+          onClick={() => setDriverHistoryModal(null)}
+        >
+          <div 
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '520px', width: '90%' }}
+          >
+            {/* Header Modal Pop-up */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
+              color: '#ffffff',
+              padding: '1.25rem 1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderRadius: '12px 12px 0 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff'
+                }}>
+                  <History size={18} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#ffffff' }}>
+                    Riwayat Perjalanan Driver
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                    Driver: {driverHistoryModal.driverName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDriverHistoryModal(null)}
+                style={{
+                  border: 'none',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#94a3b8',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '1.25rem', maxHeight: '70vh', overflowY: 'auto' }}>
+              {driverHistoryModal.trips.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8', fontSize: '0.875rem' }}>
+                  Belum ada riwayat perjalanan yang diselesaikan oleh driver ini.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {driverHistoryModal.trips.map((trip, idx) => {
+                    const ratingVal = trip.rating || 0;
+                    const ratingLabel = ratingVal === 1 ? 'Buruk' : ratingVal === 3 ? 'Baik' : ratingVal === 5 ? 'Sangat Baik' : '-';
+                    const ratingColor = ratingVal === 1 ? '#ef4444' : ratingVal === 3 ? '#d97706' : ratingVal === 5 ? '#10b981' : '#64748b';
+                    const ratingBg = ratingVal === 1 ? '#fef2f2' : ratingVal === 3 ? '#fffbeb' : ratingVal === 5 ? '#ecfdf5' : '#f1f5f9';
+
+                    return (
+                      <div 
+                        key={trip.id || idx}
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          padding: '1rem',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.03)'
+                        }}
+                      >
+                        {/* 1. Penumpang / Peminjam */}
+                        <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                          <Users size={16} style={{ color: '#2563eb', marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              1. Penumpang / Peminjam
+                            </span>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', marginTop: '1px' }}>
+                              {trip.borrowerName}
+                            </div>
+                            {trip.companions && trip.companions.length > 0 && (
+                              <div style={{ fontSize: '0.775rem', color: '#475569', marginTop: '2px' }}>
+                                Pendamping: {trip.companions.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 2. Nomor Plat Mobil */}
+                        <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                          <Car size={16} style={{ color: '#0284c7', marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              2. Nomor Plat Mobil
+                            </span>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', marginTop: '1px' }}>
+                              {trip.plateNumber || getPlateNumber(trip.vehicleId, trip.vehicleName)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. Rating Layanan */}
+                        <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                          <Star size={16} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              3. Rating Layanan
+                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
+                              {ratingVal > 0 ? (
+                                <>
+                                  <div style={{ display: 'flex', gap: '2px' }}>
+                                    {[1, 2, 3, 4, 5].map((s) => (
+                                      <Star
+                                        key={s}
+                                        size={14}
+                                        fill={s <= ratingVal ? '#f59e0b' : 'none'}
+                                        color={s <= ratingVal ? '#f59e0b' : '#cbd5e1'}
+                                      />
+                                    ))}
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    color: ratingColor,
+                                    backgroundColor: ratingBg,
+                                    padding: '0.15rem 0.45rem',
+                                    borderRadius: '4px'
+                                  }}>
+                                    {ratingVal} Bintang ({ratingLabel})
+                                  </span>
+                                </>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>
+                                  Belum ada rating
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 4. Deskripsi / Catatan Perjalanan */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                          <MessageSquare size={16} style={{ color: '#64748b', marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              4. Deskripsi / Catatan Perjalanan
+                            </span>
+                            <div style={{ fontSize: '0.85rem', color: '#334155', marginTop: '2px', fontStyle: trip.ratingDescription || trip.description ? 'normal' : 'italic' }}>
+                              {trip.ratingDescription || trip.description || 'Tidak ada deskripsi/catatan.'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

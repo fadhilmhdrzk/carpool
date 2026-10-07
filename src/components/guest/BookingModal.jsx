@@ -124,6 +124,7 @@ export default function BookingFormModal({
       companions: selectedCompanions,
       vehicleId: vehicleObj.id,
       vehicleName: vehicleObj.name,
+      plateNumber: vehicleObj.plateNumber || '',
       driverName: vehicleObj.driverName || 'Driver Operasional',
       date,
       departureTime,

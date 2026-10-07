@@ -9,9 +9,10 @@ import {
   UserCheck,
   X
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 import TripDetailModal from '../TicketModal';
 import DatePicker from '../DatePicker';
+import { getPlateNumber } from '../../data/mockData';
 
 export default function TripHistoryPage({ 
   trips = [],
@@ -89,25 +90,85 @@ export default function TripHistoryPage({
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       
-      worksheet['!cols'] = [
-        { wch: 5 },  // No
-        { wch: 15 }, // Kode Tiket
-        { wch: 15 }, // Tanggal
-        { wch: 25 }, // Nama Pemohon
-        { wch: 25 }, // Unit
-        { wch: 30 }, // Rekan Pendamping
-        { wch: 18 }, // Armada Mobil
-        { wch: 14 }, // Plat
-        { wch: 20 }, // Driver
-        { wch: 15 }, // Jam Pergi
-        { wch: 15 }, // Est Jam Kembali
-        { wch: 20 }, // Jam Realisasi
-        { wch: 35 }, // Tujuan
-        { wch: 15 }, // Status
-        { wch: 22 }, // Rating
-        { wch: 30 }, // Catatan
-        { wch: 25 }  // Pengaju
-      ];
+      // Auto-fit column widths based on maximum text length
+      if (exportData.length > 0) {
+        const keys = Object.keys(exportData[0]);
+        const colWidths = keys.map(key => {
+          let maxLen = key.length;
+          exportData.forEach(row => {
+            const val = row[key] ? String(row[key]) : '';
+            if (val.length > maxLen) maxLen = val.length;
+          });
+          return { wch: Math.max(maxLen + 4, 12) };
+        });
+        worksheet['!cols'] = colWidths;
+      }
+
+      // Terapkan Border, Warna Header & Alignments untuk seluruh sel
+      if (worksheet['!ref']) {
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+        const headerStyle = {
+          font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
+          fill: { fgColor: { rgb: '1E3A8A' } }, // Header Biru BJB
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: {
+            top: { style: 'thin', color: { rgb: '0F172A' } },
+            bottom: { style: 'medium', color: { rgb: '0F172A' } },
+            left: { style: 'thin', color: { rgb: '475569' } },
+            right: { style: 'thin', color: { rgb: '475569' } }
+          }
+        };
+
+        const cellBorder = {
+          top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+          right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        const dataStyleEven = {
+          font: { sz: 10, name: 'Calibri' },
+          fill: { fgColor: { rgb: 'F8FAFC' } }, // Selang-seling warna soft
+          border: cellBorder,
+          alignment: { vertical: 'center' }
+        };
+
+        const dataStyleOdd = {
+          font: { sz: 10, name: 'Calibri' },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          border: cellBorder,
+          alignment: { vertical: 'center' }
+        };
+
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!worksheet[cellAddress]) continue;
+
+            if (R === 0) {
+              worksheet[cellAddress].s = headerStyle;
+            } else {
+              const isEven = R % 2 === 0;
+              const style = isEven ? { ...dataStyleEven } : { ...dataStyleOdd };
+              
+              if ([0, 1, 7, 8, 9, 11, 12].includes(C)) {
+                style.alignment = { ...style.alignment, horizontal: 'center' };
+              } else {
+                style.alignment = { ...style.alignment, horizontal: 'left' };
+              }
+
+              worksheet[cellAddress].s = style;
+            }
+          }
+        }
+
+        // Fitur AutoFilter pada header
+        worksheet['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+      }
+
+      // Tampilkan Garis Tabel (Gridlines) saat file dibuka di Excel
+      worksheet['!views'] = [{ showGridLines: true }];
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Riwayat Carpool BJB');
@@ -285,7 +346,7 @@ export default function TripHistoryPage({
                         </td>
                         <td>
                           <div style={{ fontWeight: 700 }}>{trip.vehicleName}</div>
-                          <span className="vehicle-plate" style={{ fontSize: '0.75rem' }}>{trip.plateNumber}</span>
+                          <span className="vehicle-plate" style={{ fontSize: '0.75rem' }}>{trip.plateNumber || getPlateNumber(trip.vehicleId, trip.vehicleName)}</span>
                         </td>
                         <td>
                           <div style={{ fontWeight: 600, fontSize: '0.825rem', color: trip.driverName ? '#0f172a' : '#94a3b8' }}>

@@ -24,7 +24,7 @@ export default function Home({
 
   const handleSelectVehicle = (vehicle) => {
     const activeTrip = trips.find(t => String(t.vehicleId) === String(vehicle.id) && t.status === 'Aktif');
-    const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
+    const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (vehicle.status === 'Terpakai' && vehicle.currentBorrower) ? 'Terpakai' : 'Tersedia');
     if (effectiveStatus === 'Tersedia') {
       setSelectedVehicleForModal(vehicle);
       setIsModalOpen(true);
@@ -55,9 +55,9 @@ export default function Home({
         <div className="vehicles-grid">
           {vehicles.map(vehicle => {
             const activeTrip = trips.find(t => String(t.vehicleId) === String(vehicle.id) && t.status === 'Aktif');
-            const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip ? 'Terpakai' : 'Tersedia');
-            const effectiveBorrower = activeTrip ? activeTrip.borrowerName : vehicle.currentBorrower;
-            const effectiveReturnTime = activeTrip ? activeTrip.returnTime : vehicle.currentReturnTime;
+            const effectiveStatus = vehicle.status === 'Perawatan' ? 'Perawatan' : (activeTrip || (vehicle.status === 'Terpakai' && vehicle.currentBorrower) ? 'Terpakai' : 'Tersedia');
+            const effectiveBorrower = activeTrip ? activeTrip.borrowerName : (effectiveStatus === 'Terpakai' ? vehicle.currentBorrower : null);
+            const effectiveReturnTime = activeTrip ? activeTrip.returnTime : (effectiveStatus === 'Terpakai' ? vehicle.currentReturnTime : null);
             const isAvailable = effectiveStatus === 'Tersedia';
 
             return (
