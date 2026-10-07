@@ -78,33 +78,42 @@ export default function App() {
         const localVehicles = getStoredVehicles();
         const localTrips = getStoredTrips();
 
-        const rawDbTrips = Array.isArray(dbTrips) ? dbTrips : [];
-        const mergedTripsMap = new Map();
-
-        rawDbTrips.forEach(t => mergedTripsMap.set(String(t.id), t));
-
-        (localTrips || []).forEach(lt => {
-          const match = Array.from(mergedTripsMap.values()).find(
-            dt => String(dt.id) === String(lt.id) || 
-                  (String(dt.vehicleId) === String(lt.vehicleId) && dt.borrowerName === lt.borrowerName) ||
-                  (String(dt.vehicleId) === String(lt.vehicleId) && lt.status === 'Selesai' && dt.status === 'Aktif')
-          );
-          if (match) {
-            mergedTripsMap.set(String(match.id), {
-              ...match,
-              status: lt.status === 'Selesai' ? 'Selesai' : match.status,
-              rating: lt.rating || match.rating,
-              ratingDescription: lt.ratingDescription || match.ratingDescription,
-              driverName: lt.driverName || match.driverName,
-              plateNumber: lt.plateNumber || match.plateNumber,
-              actualReturnTime: lt.actualReturnTime || match.actualReturnTime
-            });
+        let finalTrips = [];
+        if (Array.isArray(dbTrips)) {
+          if (dbTrips.length === 0) {
+            // Jika tabel trips di Supabase dikosongkan/dihapus, bersihkan cache localStorage
+            finalTrips = [];
+            saveStoredTrips([]);
           } else {
-            mergedTripsMap.set(String(lt.id), lt);
-          }
-        });
+            const mergedTripsMap = new Map();
+            dbTrips.forEach(t => mergedTripsMap.set(String(t.id), t));
 
-        const finalTrips = Array.from(mergedTripsMap.values());
+            (localTrips || []).forEach(lt => {
+              const match = Array.from(mergedTripsMap.values()).find(
+                dt => String(dt.id) === String(lt.id) || 
+                      (String(dt.vehicleId) === String(lt.vehicleId) && dt.borrowerName === lt.borrowerName) ||
+                      (String(dt.vehicleId) === String(lt.vehicleId) && lt.status === 'Selesai' && dt.status === 'Aktif')
+              );
+              if (match) {
+                mergedTripsMap.set(String(match.id), {
+                  ...match,
+                  status: lt.status === 'Selesai' ? 'Selesai' : match.status,
+                  rating: lt.rating || match.rating,
+                  ratingDescription: lt.ratingDescription || match.ratingDescription,
+                  driverName: lt.driverName || match.driverName,
+                  plateNumber: lt.plateNumber || match.plateNumber,
+                  actualReturnTime: lt.actualReturnTime || match.actualReturnTime
+                });
+              } else if (lt.id && String(lt.id).startsWith('trip-')) {
+                // Pertahankan local trip yang baru dibuat (trip-...) yang belum sempat ter-sync
+                mergedTripsMap.set(String(lt.id), lt);
+              }
+            });
+            finalTrips = Array.from(mergedTripsMap.values());
+          }
+        } else {
+          finalTrips = localTrips || [];
+        }
 
         // Base Vehicles (Utamakan DB jika ada, fallback ke Local / Default)
         let baseVehicles = (Array.isArray(dbVehicles) && dbVehicles.length > 0)
