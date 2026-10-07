@@ -14,7 +14,8 @@ import {
   UserCheck,
   History,
   Users,
-  MessageSquare
+  MessageSquare,
+  Calendar
 } from 'lucide-react';
 import ConfirmModal from '../ConfirmModal';
 import TicketModal from '../TicketModal';
@@ -807,12 +808,30 @@ export default function VehicleStatusPage({
                           </div>
                         </div>
 
-                        {/* 2. Nomor Plat Mobil */}
+                        {/* 2. Tanggal & Waktu Perjalanan */}
+                        <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                          <Calendar size={16} style={{ color: '#059669', marginTop: '2px', flexShrink: 0 }} />
+                          <div>
+                            <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              2. Tanggal & Waktu Perjalanan
+                            </span>
+                            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem', marginTop: '1px' }}>
+                              {trip.date ? new Date(trip.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
+                              {trip.departureTime && trip.returnTime && (
+                                <span style={{ fontWeight: 600, color: '#2563eb', marginLeft: '0.5rem', fontSize: '0.8rem' }}>
+                                  (Pkl {trip.departureTime} - {trip.returnTime} WIB)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. Nomor Plat Mobil */}
                         <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
                           <Car size={16} style={{ color: '#0284c7', marginTop: '2px', flexShrink: 0 }} />
                           <div>
                             <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              2. Nomor Plat Mobil
+                              3. Nomor Plat Mobil
                             </span>
                             <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', marginTop: '1px' }}>
                               {trip.plateNumber || getPlateNumber(trip.vehicleId, trip.vehicleName)}
@@ -820,12 +839,12 @@ export default function VehicleStatusPage({
                           </div>
                         </div>
 
-                        {/* 3. Rating Layanan */}
+                        {/* 4. Rating Layanan */}
                         <div style={{ marginBottom: '0.85rem', display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
                           <Star size={16} style={{ color: '#f59e0b', marginTop: '2px', flexShrink: 0 }} />
                           <div>
                             <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              3. Rating Layanan
+                              4. Rating Layanan
                             </span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '2px' }}>
                               {ratingVal > 0 ? (
@@ -860,12 +879,12 @@ export default function VehicleStatusPage({
                           </div>
                         </div>
 
-                        {/* 4. Deskripsi / Catatan Perjalanan */}
+                        {/* 5. Deskripsi / Catatan Perjalanan */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
                           <MessageSquare size={16} style={{ color: '#64748b', marginTop: '2px', flexShrink: 0 }} />
                           <div>
                             <span style={{ fontSize: '0.725rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                              4. Deskripsi / Catatan Perjalanan
+                              5. Deskripsi / Catatan Perjalanan
                             </span>
                             <div style={{ fontSize: '0.85rem', color: '#334155', marginTop: '2px', fontStyle: trip.ratingDescription || trip.description ? 'normal' : 'italic' }}>
                               {trip.ratingDescription || trip.description || 'Tidak ada deskripsi/catatan.'}
